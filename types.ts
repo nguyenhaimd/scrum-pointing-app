@@ -13,6 +13,7 @@ export interface User {
   lastHeartbeat: number;
   room: string;
   avatar: string;
+  deviceType: 'mobile' | 'tablet' | 'desktop';
 }
 
 export interface Vote {
@@ -61,4 +62,5 @@ export type Action =
   | { type: 'SEND_MESSAGE'; payload: ChatMessage }
   | { type: 'SYNC_STATE'; payload: AppState }
   | { type: 'REQUEST_STATE' }
-  | { type: 'UPDATE_STORY'; payload: Story }; // For AI updates
+  | { type: 'UPDATE_STORY'; payload: Story } // For AI updates
+  | { type: 'CLEAR_QUEUE' };

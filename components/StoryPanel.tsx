@@ -9,6 +9,7 @@ interface StoryPanelProps {
   onAddStory: (story: Story) => void;
   onSelectStory: (id: string) => void;
   onDeleteStory?: (id: string) => void;
+  onClearQueue?: () => void;
 }
 
 const StoryPanel: React.FC<StoryPanelProps> = ({
@@ -17,7 +18,8 @@ const StoryPanel: React.FC<StoryPanelProps> = ({
   userRole,
   onAddStory,
   onSelectStory,
-  onDeleteStory
+  onDeleteStory,
+  onClearQueue
 }) => {
   const [newTitle, setNewTitle] = useState('');
   const [newDescription, setNewDescription] = useState('');
@@ -43,11 +45,17 @@ const StoryPanel: React.FC<StoryPanelProps> = ({
     setNewDescription('');
   };
 
+  const handleClearQueue = () => {
+    if (window.confirm("Are you sure you want to end the session? This will delete all stories.")) {
+      onClearQueue?.();
+    }
+  };
+
   return (
     <div className="bg-slate-800 border-b border-slate-700 md:border-b-0 md:border-r md:w-80 flex flex-col h-full transition-all">
       <div className="p-4 border-b border-slate-700 flex justify-between items-center shrink-0">
         <h2 className="font-semibold text-slate-200">Stories</h2>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
              <span className="text-xs bg-slate-700 px-2 py-1 rounded text-slate-400">{stories.length} Total</span>
         </div>
       </div>
@@ -148,6 +156,16 @@ const StoryPanel: React.FC<StoryPanelProps> = ({
                 disabled={!newTitle}
             >
                 Add Story
+            </Button>
+
+            <div className="border-t border-slate-700 my-1"></div>
+            <Button 
+                size="sm" 
+                variant="danger" 
+                className="w-full"
+                onClick={handleClearQueue}
+            >
+                End Session (Clear All)
             </Button>
           </div>
         </div>

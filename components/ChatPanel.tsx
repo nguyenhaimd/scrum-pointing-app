@@ -9,6 +9,31 @@ interface ChatPanelProps {
   onSendMessage: (msg: ChatMessage) => void;
 }
 
+const DeviceIcon: React.FC<{ type: 'mobile' | 'tablet' | 'desktop' }> = ({ type }) => {
+    if (type === 'mobile') {
+        return (
+            <svg className="w-3 h-3 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <title>Mobile</title>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+            </svg>
+        );
+    }
+    if (type === 'tablet') {
+        return (
+            <svg className="w-3 h-3 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <title>Tablet</title>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 18h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+            </svg>
+        );
+    }
+    return (
+        <svg className="w-3 h-3 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <title>Desktop</title>
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+        </svg>
+    );
+};
+
 const ChatPanel: React.FC<ChatPanelProps> = ({
   messages,
   currentUser,
@@ -148,6 +173,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                     <p className={`text-sm font-medium truncate ${user.isOnline ? 'text-slate-200' : 'text-slate-500'}`}>
                       {user.name} {user.id === currentUser.id && '(You)'}
                     </p>
+                    <DeviceIcon type={user.deviceType || 'desktop'} />
                   </div>
                   <p className="text-xs text-slate-500">{user.role}</p>
                 </div>

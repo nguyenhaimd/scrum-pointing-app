@@ -13,6 +13,17 @@ const Login: React.FC<LoginProps> = ({ onJoin }) => {
   const [role, setRole] = useState<UserRole>(UserRole.DEVELOPER);
   const [selectedAvatar, setSelectedAvatar] = useState(AVATARS[0]);
 
+  const getDeviceType = (): 'mobile' | 'tablet' | 'desktop' => {
+    const ua = navigator.userAgent;
+    if (/(tablet|ipad|playbook|silk)|(android(?!.*mobi))/i.test(ua)) {
+      return 'tablet';
+    }
+    if (/Mobile|Android|iP(hone|od)|IEMobile|BlackBerry|Kindle|Silk-Accelerated/i.test(ua)) {
+      return 'mobile';
+    }
+    return 'desktop';
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !room.trim()) return;
@@ -24,7 +35,8 @@ const Login: React.FC<LoginProps> = ({ onJoin }) => {
       isOnline: true,
       lastHeartbeat: Date.now(),
       room: room.trim(),
-      avatar: selectedAvatar
+      avatar: selectedAvatar,
+      deviceType: getDeviceType()
     };
     onJoin(newUser);
   };

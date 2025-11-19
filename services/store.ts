@@ -14,9 +14,10 @@ const initialState: AppState = {
 
 export const useAppStore = (currentUser: User | null) => {
   const [state, setState] = useState<AppState>(initialState);
+  const [isConnected, setIsConnected] = useState(true);
   const roomId = currentUser?.room ? currentUser.room.replace(/[^a-zA-Z0-9]/g, '_') : 'default'; // Sanitize room name for path
 
-  // 1. LISTEN to Firebase
+  // 1. LISTEN to Firebase Data
   useEffect(() => {
     if (!currentUser) return;
 
@@ -56,24 +57,42 @@ export const useAppStore = (currentUser: User | null) => {
     return () => unsubscribe();
   }, [roomId, currentUser]);
 
-  // 2. MANAGE PRESENCE (Self)
+  // 2. MANAGE PRESENCE (Self) & CONNECTION
   useEffect(() => {
     if (!currentUser) return;
 
     const userRef = ref(db, `sessions/${roomId}/users/${currentUser.id}`);
+    const connectedRef = ref(db, '.info/connected');
 
-    // Set user data immediately
-    set(userRef, { ...currentUser, isOnline: true, lastHeartbeat: Date.now() });
+    const unsubscribeConnected = onValue(connectedRef, (snap) => {
+      const connected = snap.val();
+      setIsConnected(!!connected);
 
-    // If tab closes or internet is lost, mark as offline automatically (Firebase feature)
-    onDisconnect(userRef).update({ isOnline: false });
+      if (connected === true) {
+        // We are connected (or reconnected).
+        // 1. Establish the onDisconnect hook to mark us offline if we drop.
+        onDisconnect(userRef).update({ isOnline: false }).then(() => {
+             // 2. Set us as online.
+             // We use update to ensure we don't overwrite other fields if they changed,
+             // but we do want to ensure our latest user details are synced.
+            update(userRef, { 
+                ...currentUser,
+                isOnline: true, 
+                lastHeartbeat: Date.now() 
+            });
+        });
+      }
+    });
 
     // Keep heartbeat alive just in case (optional in Firebase but good for "idle" logic)
     const interval = setInterval(() => {
-        update(userRef, { lastHeartbeat: Date.now() });
+        if (isConnected) {
+            update(userRef, { lastHeartbeat: Date.now() });
+        }
     }, 60000);
 
     return () => {
+        unsubscribeConnected();
         clearInterval(interval);
         // We don't remove on unmount/logout immediately to prevent flickering, 
         // but let's mark offline
@@ -149,6 +168,13 @@ export const useAppStore = (currentUser: User | null) => {
         }
         break;
 
+      case 'CLEAR_QUEUE':
+        // Remove all stories
+        await set(ref(db, `${rootPath}/stories`), {});
+        // Reset current story state
+        await update(ref(db, rootPath), { currentStoryId: null, areVotesRevealed: false });
+        break;
+
       case 'JOIN_SESSION':
         // Handled by the effect above
         break;
@@ -158,5 +184,5 @@ export const useAppStore = (currentUser: User | null) => {
     }
   }, [roomId, state.currentStoryId]);
 
-  return { state, dispatch };
+  return { state, dispatch, isConnected };
 };

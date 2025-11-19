@@ -1,40 +1,75 @@
-import * as firebase from 'firebase/app';
+
+import * as firebaseApp from 'firebase/app';
 import { getDatabase } from 'firebase/database';
 
-// Helper to safely access environment variables in both Vite (browser) and other environments.
-// We strictly check if 'process' is defined to avoid "ReferenceError: process is not defined" in browsers.
-const getEnv = (key: string) => {
-  // 1. Try Vite's import.meta.env (standard for Vite apps)
+// Attempt to retrieve environment variables safely.
+// We prioritize direct access for bundler replacement, but wrap in try-catch
+// to handle environments where 'process' is not defined at runtime.
+
+let apiKey, authDomain, projectId, databaseURL, storageBucket, messagingSenderId, appId, measurementId;
+
+try {
   // @ts-ignore
-  if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env[`VITE_${key}`]) {
-    // @ts-ignore
-    return import.meta.env[`VITE_${key}`];
-  }
-
-  // 2. Try process.env (standard for Node/Webpack/CRA), but check if process exists first
-  if (typeof process !== 'undefined' && process.env) {
-    return process.env[`REACT_APP_${key}`] || process.env[key];
-  }
-
-  return undefined;
-};
-
-const firebaseConfig = {
-  apiKey: getEnv('FIREBASE_API_KEY'),
-  authDomain: getEnv('FIREBASE_AUTH_DOMAIN'),
-  databaseURL: getEnv('FIREBASE_DATABASE_URL'),
-  projectId: getEnv('FIREBASE_PROJECT_ID'),
-  storageBucket: getEnv('FIREBASE_STORAGE_BUCKET'),
-  messagingSenderId: getEnv('FIREBASE_MESSAGING_SENDER_ID'),
-  appId: getEnv('FIREBASE_APP_ID'),
-  measurementId: getEnv('FIREBASE_MEASUREMENT_ID')
-};
-
-// Minimal check to ensure config is present before crashing
-if (!firebaseConfig.apiKey) {
-  console.error("Firebase Configuration is missing! Make sure you have set your .env variables (VITE_FIREBASE_API_KEY, etc).");
+  apiKey = process.env.FIREBASE_API_KEY || process.env.REACT_APP_FIREBASE_API_KEY;
+  // @ts-ignore
+  authDomain = process.env.FIREBASE_AUTH_DOMAIN || process.env.REACT_APP_FIREBASE_AUTH_DOMAIN;
+  // @ts-ignore
+  projectId = process.env.FIREBASE_PROJECT_ID || process.env.REACT_APP_FIREBASE_PROJECT_ID;
+  // @ts-ignore
+  databaseURL = process.env.FIREBASE_DATABASE_URL || process.env.REACT_APP_FIREBASE_DATABASE_URL;
+  // @ts-ignore
+  storageBucket = process.env.FIREBASE_STORAGE_BUCKET || process.env.REACT_APP_FIREBASE_STORAGE_BUCKET;
+  // @ts-ignore
+  messagingSenderId = process.env.FIREBASE_MESSAGING_SENDER_ID || process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID;
+  // @ts-ignore
+  appId = process.env.FIREBASE_APP_ID || process.env.REACT_APP_FIREBASE_APP_ID;
+  // @ts-ignore
+  measurementId = process.env.FIREBASE_MEASUREMENT_ID || process.env.REACT_APP_FIREBASE_MEASUREMENT_ID;
+} catch (e) {
+  // process is likely undefined
 }
 
-// Initialize Firebase using namespace import to resolve TypeScript errors with named exports
-const app = firebase.initializeApp(firebaseConfig);
+// Fallback for Vite environments (using import.meta.env)
+if (!apiKey && typeof import.meta !== 'undefined' && (import.meta as any).env) {
+  // @ts-ignore
+  apiKey = import.meta.env.VITE_FIREBASE_API_KEY;
+  // @ts-ignore
+  authDomain = import.meta.env.VITE_FIREBASE_AUTH_DOMAIN;
+  // @ts-ignore
+  projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID;
+  // @ts-ignore
+  databaseURL = import.meta.env.VITE_FIREBASE_DATABASE_URL;
+  // @ts-ignore
+  storageBucket = import.meta.env.VITE_FIREBASE_STORAGE_BUCKET;
+  // @ts-ignore
+  messagingSenderId = import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID;
+  // @ts-ignore
+  appId = import.meta.env.VITE_FIREBASE_APP_ID;
+  // @ts-ignore
+  measurementId = import.meta.env.VITE_FIREBASE_MEASUREMENT_ID;
+}
+
+// Fallback logic for Database URL
+if (!databaseURL && projectId) {
+  databaseURL = `https://${projectId}-default-rtdb.firebaseio.com`;
+}
+
+const firebaseConfig = {
+  apiKey,
+  authDomain,
+  databaseURL,
+  projectId,
+  storageBucket,
+  messagingSenderId,
+  appId,
+  measurementId
+};
+
+// Check if critical config is missing
+if (!firebaseConfig.apiKey) {
+  console.error("Firebase Configuration is completely missing! Check your .env file.");
+}
+
+// @ts-ignore
+const app = firebaseApp.initializeApp(firebaseConfig);
 export const db = getDatabase(app);

@@ -15,21 +15,21 @@ const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [mobileView, setMobileView] = useState<MobileView>('table');
 
-  // Try to restore session on mount
+  // Try to restore session on mount from localStorage (persists across close/reopen)
   useEffect(() => {
-    const storedUser = sessionStorage.getItem(USER_STORAGE_KEY);
+    const storedUser = localStorage.getItem(USER_STORAGE_KEY);
     if (storedUser) {
       try {
         const user = JSON.parse(storedUser);
         setCurrentUser(user);
       } catch (e) {
-        sessionStorage.removeItem(USER_STORAGE_KEY);
+        localStorage.removeItem(USER_STORAGE_KEY);
       }
     }
   }, []);
 
   // Sync with Simulated Backend
-  const { state, dispatch } = useAppStore(currentUser);
+  const { state, dispatch, isConnected } = useAppStore(currentUser);
   
   // Derived State
   const currentStory = state.stories.find(s => s.id === state.currentStoryId) || null;
@@ -38,12 +38,12 @@ const App: React.FC = () => {
 
   // Actions
   const handleJoin = (user: User) => {
-    sessionStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user));
+    localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user));
     setCurrentUser(user);
   };
 
   const handleLogout = () => {
-      sessionStorage.removeItem(USER_STORAGE_KEY);
+      localStorage.removeItem(USER_STORAGE_KEY);
       setCurrentUser(null);
       window.location.reload();
   };
@@ -56,6 +56,17 @@ const App: React.FC = () => {
   return (
     <div className="flex flex-col h-screen bg-slate-900 text-white overflow-hidden">
       
+      {/* Disconnected Banner */}
+      { !isConnected && (
+        <div className="bg-red-600 text-white text-center py-1 z-[60] text-sm font-bold animate-pulse flex justify-center items-center gap-2">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+            <span>Connection lost. Reconnecting...</span>
+            <button onClick={() => window.location.reload()} className="underline hover:text-red-100 ml-2 text-xs border border-white/30 px-2 py-0.5 rounded">
+                Reload
+            </button>
+        </div>
+      )}
+
       {/* Header */}
       <header className="h-16 bg-slate-800 border-b border-slate-700 flex items-center justify-between px-4 md:px-6 shrink-0 z-50">
         <div className="flex items-center gap-3">
@@ -84,7 +95,7 @@ const App: React.FC = () => {
                 <div className="w-8 h-8 flex items-center justify-center bg-slate-700 rounded-full text-lg">
                     {currentUser.avatar || '👤'}
                 </div>
-                <button onClick={handleLogout} className="text-slate-400 hover:text-white ml-2">
+                <button onClick={handleLogout} className="text-slate-400 hover:text-white ml-2" title="Logout">
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
                 </button>
             </div>
@@ -127,6 +138,7 @@ const App: React.FC = () => {
                 userRole={currentUser.role}
                 onAddStory={(story) => dispatch({ type: 'ADD_STORY', payload: story })}
                 onDeleteStory={(id) => dispatch({ type: 'DELETE_STORY', payload: id })}
+                onClearQueue={() => dispatch({ type: 'CLEAR_QUEUE' })}
                 onSelectStory={(id) => {
                     dispatch({ type: 'SET_CURRENT_STORY', payload: id });
                     setMobileView('table'); // Switch to table on mobile after selection
@@ -147,25 +159,11 @@ const App: React.FC = () => {
                 currentUserRole={currentUser.role}
                 onReveal={() => dispatch({ type: 'REVEAL_VOTES' })}
                 onReset={() => dispatch({ type: 'RESET_VOTES' })}
-                onNext={() => {
+                onNext={(finalPoints) => {
                     if(!currentStory) return;
                     
-                    // Calculate result (Mode)
-                    const validVotes = Object.values(currentStory.votes).filter(v => v !== '?' && v !== '☕');
-                    const counts: Record<string, number> = {};
-                    let maxCount = 0;
-                    let mode = validVotes[0] || 0;
-                    
-                    validVotes.forEach(v => {
-                        const s = String(v);
-                        counts[s] = (counts[s] || 0) + 1;
-                        if (counts[s] > maxCount) {
-                            maxCount = counts[s];
-                            mode = v;
-                        }
-                    });
-
-                    dispatch({ type: 'FINISH_STORY', payload: { storyId: currentStory.id, points: mode } });
+                    // Use the passed finalPoints (manually selected by SM)
+                    dispatch({ type: 'FINISH_STORY', payload: { storyId: currentStory.id, points: finalPoints } });
                     
                     // Automatically select next pending story
                     const nextStory = state.stories.find(s => s.status === 'pending' && s.id !== currentStory.id);
