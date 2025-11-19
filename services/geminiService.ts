@@ -1,8 +1,22 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { Story } from "../types";
 
-// Use process.env.API_KEY directly as per guidelines
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Safely retrieve the API key to prevent runtime crashes in browsers where 'process' is undefined.
+// We prefer process.env.API_KEY as per guidelines, but wrap it for safety.
+const getApiKey = () => {
+  if (typeof process !== 'undefined' && process.env && process.env.API_KEY) {
+    return process.env.API_KEY;
+  }
+  // Fallback for Vite environment if mapped differently or needed for local dev
+  // @ts-ignore
+  if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_KEY) {
+    // @ts-ignore
+    return import.meta.env.VITE_API_KEY;
+  }
+  return '';
+};
+
+const ai = new GoogleGenAI({ apiKey: getApiKey() });
 
 export const enhanceStory = async (title: string): Promise<Partial<Story>> => {
   try {
