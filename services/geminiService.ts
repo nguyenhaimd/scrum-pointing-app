@@ -1,15 +1,9 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { Story } from "../types";
 
-// Fix: Initialize GoogleGenAI with process.env.API_KEY directly as per guidelines
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 export const enhanceStory = async (title: string): Promise<Partial<Story>> => {
-  if (!process.env.API_KEY) {
-    console.error("Missing Gemini API Key");
-    return {};
-  }
-
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
@@ -44,8 +38,6 @@ export const getAiChatResponse = async (
   message: string,
   currentStory?: Story | null
 ): Promise<string> => {
-  if (!process.env.API_KEY) return "I'm sorry, I can't connect to my brain right now (API Key missing).";
-
   try {
     const context = currentStory
       ? `The team is currently discussing the story: "${currentStory.title}". Description: ${currentStory.description}.`
