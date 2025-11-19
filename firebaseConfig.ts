@@ -1,4 +1,4 @@
-import { initializeApp } from 'firebase/app';
+import * as firebase from 'firebase/app';
 import { getDatabase } from 'firebase/database';
 
 // We use import.meta.env to access variables in Vite. 
@@ -24,5 +24,5 @@ if (!firebaseConfig.apiKey) {
   console.error("Firebase Configuration is missing! Make sure you have set your .env variables (VITE_FIREBASE_API_KEY, etc).");
 }
 
-const app = initializeApp(firebaseConfig);
+const app = firebase.initializeApp(firebaseConfig);
 export const db = getDatabase(app);
