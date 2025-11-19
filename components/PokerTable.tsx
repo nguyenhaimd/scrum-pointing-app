@@ -36,6 +36,15 @@ const PokerTable: React.FC<PokerTableProps> = ({
 }) => {
   // State for manually selected final score
   const [manualFinalScore, setManualFinalScore] = useState<string | number | null>(null);
+  
+  // Responsive state
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' ? window.innerWidth < 768 : false);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // 1. Seating Arrangement
   const seatedUsers = useMemo(() => {
@@ -108,7 +117,8 @@ const PokerTable: React.FC<PokerTableProps> = ({
     <div className="flex-1 flex flex-col items-center justify-center p-4 relative overflow-hidden min-h-[50vh]">
       
       {/* Table Surface */}
-      <div className="relative w-full max-w-4xl aspect-square md:aspect-[2/1] bg-slate-800/50 rounded-full border-8 border-slate-700 shadow-2xl flex items-center justify-center transition-all">
+      {/* Adjusted width on mobile (w-[82%]) to provide margin for avatars sitting on the edge */}
+      <div className="relative w-[82%] sm:w-[90%] md:w-full max-w-4xl aspect-square md:aspect-[2/1] bg-slate-800/50 rounded-full border-8 border-slate-700 shadow-2xl flex items-center justify-center transition-all">
         
         {/* Center Content (Results) */}
         <div className="text-center z-10 px-4 w-full max-w-md">
@@ -203,8 +213,11 @@ const PokerTable: React.FC<PokerTableProps> = ({
         {seatedUsers.map((user, index) => {
           const total = seatedUsers.length;
           const angleRad = (index / total) * 2 * Math.PI - (Math.PI / 2);
-          const radiusX = window.innerWidth < 768 ? 42 : 52; 
-          const radiusY = window.innerWidth < 768 ? 42 : 55; 
+          
+          // Adjusted radii for mobile to pull avatars inside more and prevent cutoff
+          const radiusX = isMobile ? 38 : 52; 
+          const radiusY = isMobile ? 38 : 55; 
+          
           const left = 50 + radiusX * Math.cos(angleRad);
           const top = 50 + radiusY * Math.sin(angleRad);
           const userVote = currentStory?.votes?.[user.id];

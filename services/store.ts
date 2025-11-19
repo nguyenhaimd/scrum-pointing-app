@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { AppState, Action, User, Story } from '../types';
 import { db } from '../firebaseConfig';
-import { ref, onValue, set, update, remove, onDisconnect, push, serverTimestamp } from 'firebase/database';
+import { ref, onValue, set, update, remove, onDisconnect, push } from 'firebase/database';
 
 // Initial empty state
 const initialState: AppState = {
@@ -14,12 +14,14 @@ const initialState: AppState = {
 
 export const useAppStore = (currentUser: User | null) => {
   const [state, setState] = useState<AppState>(initialState);
-  const [isConnected, setIsConnected] = useState(true);
+  // Initialize connected state based on DB availability. 
+  // If DB is missing, start as false so the UI can show an error banner if needed.
+  const [isConnected, setIsConnected] = useState(!!db);
   const roomId = currentUser?.room ? currentUser.room.replace(/[^a-zA-Z0-9]/g, '_') : 'default'; // Sanitize room name for path
 
   // 1. LISTEN to Firebase Data
   useEffect(() => {
-    if (!currentUser) return;
+    if (!currentUser || !db) return;
 
     const sessionRef = ref(db, `sessions/${roomId}`);
 
@@ -59,7 +61,7 @@ export const useAppStore = (currentUser: User | null) => {
 
   // 2. MANAGE PRESENCE (Self) & CONNECTION
   useEffect(() => {
-    if (!currentUser) return;
+    if (!currentUser || !db) return;
 
     const userRef = ref(db, `sessions/${roomId}/users/${currentUser.id}`);
     const connectedRef = ref(db, '.info/connected');
@@ -86,8 +88,8 @@ export const useAppStore = (currentUser: User | null) => {
 
     // Keep heartbeat alive just in case (optional in Firebase but good for "idle" logic)
     const interval = setInterval(() => {
-        if (isConnected) {
-            update(userRef, { lastHeartbeat: Date.now() });
+        if (db) {
+            update(userRef, { lastHeartbeat: Date.now() }).catch(() => {});
         }
     }, 60000);
 
@@ -96,13 +98,15 @@ export const useAppStore = (currentUser: User | null) => {
         clearInterval(interval);
         // We don't remove on unmount/logout immediately to prevent flickering, 
         // but let's mark offline
-        update(userRef, { isOnline: false });
+        if (db) {
+             update(userRef, { isOnline: false }).catch(() => {});
+        }
     };
   }, [currentUser, roomId]);
 
   // 3. DISPATCHER (Writes to Firebase)
   const dispatch = useCallback(async (action: Action) => {
-    if (!roomId) return;
+    if (!roomId || !db) return;
     
     const rootPath = `sessions/${roomId}`;
 
