@@ -131,8 +131,8 @@ const PokerTable: React.FC<PokerTableProps> = ({
     <div className="flex-1 flex flex-col items-center justify-center p-4 relative overflow-hidden min-h-[50vh]">
       
       {/* Table Surface */}
-      {/* Adjusted width on mobile (w-[82%]) to provide margin for avatars sitting on the edge */}
-      <div className="relative w-[82%] sm:w-[90%] md:w-full max-w-4xl aspect-square md:aspect-[2/1] bg-slate-800/50 rounded-full border-8 border-slate-700 shadow-2xl flex items-center justify-center transition-all">
+      {/* Reduced width to 75% (mobile) and 80% (desktop) to allow space for avatars sitting on the edge */}
+      <div className="relative w-[75%] sm:w-[80%] md:w-[80%] max-w-4xl aspect-square md:aspect-[2/1] bg-slate-800/50 rounded-full border-8 border-slate-700 shadow-2xl flex items-center justify-center transition-all">
         
         {/* Center Content (Results) */}
         <div className="text-center z-10 px-4 w-full max-w-md">
@@ -228,9 +228,9 @@ const PokerTable: React.FC<PokerTableProps> = ({
           const total = seatedUsers.length;
           const angleRad = (index / total) * 2 * Math.PI - (Math.PI / 2);
           
-          // Adjusted radii for mobile to pull avatars inside more and prevent cutoff
-          const radiusX = isMobile ? 38 : 52; 
-          const radiusY = isMobile ? 38 : 55; 
+          // Adjusted radii to ensure avatars stay within the viewport since the table is now smaller
+          const radiusX = isMobile ? 40 : 50; 
+          const radiusY = isMobile ? 40 : 52; 
           
           const left = 50 + radiusX * Math.cos(angleRad);
           const top = 50 + radiusY * Math.sin(angleRad);

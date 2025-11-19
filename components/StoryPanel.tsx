@@ -165,7 +165,7 @@ const StoryPanel: React.FC<StoryPanelProps> = ({
                 className="w-full"
                 onClick={handleClearQueue}
             >
-                End Session (Clear All)
+                Clear Stories Queue
             </Button>
           </div>
         </div>

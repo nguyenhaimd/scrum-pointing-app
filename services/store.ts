@@ -198,6 +198,8 @@ export const useAppStore = (currentUser: User | null) => {
       case 'CLEAR_QUEUE':
         // Remove all stories
         await set(ref(db, `${rootPath}/stories`), {});
+        // Remove chat messages
+        await remove(ref(db, `${rootPath}/chatMessages`));
         // Reset current story state
         await update(ref(db, rootPath), { currentStoryId: null, areVotesRevealed: false });
         break;
