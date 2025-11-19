@@ -23,3 +23,4 @@ export const AVATARS = [
 export const STORAGE_KEY = 'gemini-scrum-poker-state';
 export const USER_STORAGE_KEY = 'gemini-scrum-poker-user';
 export const CHANNEL_NAME = 'gemini-scrum-poker-channel';
+export const STALE_USER_TIMEOUT = 10 * 60 * 1000; // 10 minutes

@@ -63,4 +63,5 @@ export type Action =
   | { type: 'SYNC_STATE'; payload: AppState }
   | { type: 'REQUEST_STATE' }
   | { type: 'UPDATE_STORY'; payload: Story } // For AI updates
-  | { type: 'CLEAR_QUEUE' };
+  | { type: 'CLEAR_QUEUE' }
+  | { type: 'REMOVE_USER'; payload: string }; // userId

@@ -207,6 +207,7 @@ const App: React.FC = () => {
                 users={allUsers}
                 currentStory={currentStory}
                 onSendMessage={(msg) => dispatch({ type: 'SEND_MESSAGE', payload: msg })}
+                onRemoveUser={(userId) => dispatch({ type: 'REMOVE_USER', payload: userId })}
             />
         </div>
 

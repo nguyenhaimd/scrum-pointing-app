@@ -1,4 +1,4 @@
-import { initializeApp } from 'firebase/app';
+import * as firebaseApp from 'firebase/app';
 import { getDatabase } from 'firebase/database';
 
 const getEnvVar = (key: string) => {
@@ -56,7 +56,8 @@ let db;
 
 if (apiKey) {
     try {
-        app = initializeApp(firebaseConfig);
+        // Use type casting to avoid "Module has no exported member" error in some environments
+        app = (firebaseApp as any).initializeApp(firebaseConfig);
         
         // Only attempt to get database if we have a URL, otherwise it throws a fatal error
         if (databaseURL) {

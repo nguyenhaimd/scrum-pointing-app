@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ChatMessage, User, Story } from '../types';
+import { ChatMessage, User, Story, UserRole } from '../types';
 
 interface ChatPanelProps {
   messages: ChatMessage[];
@@ -7,6 +7,7 @@ interface ChatPanelProps {
   users: User[];
   currentStory: Story | null;
   onSendMessage: (msg: ChatMessage) => void;
+  onRemoveUser?: (userId: string) => void;
 }
 
 const DeviceIcon: React.FC<{ type: 'mobile' | 'tablet' | 'desktop' }> = ({ type }) => {
@@ -39,7 +40,8 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   currentUser,
   users,
   currentStory,
-  onSendMessage
+  onSendMessage,
+  onRemoveUser
 }) => {
   const [activeTab, setActiveTab] = useState<'chat' | 'people'>('chat');
   const [input, setInput] = useState('');
@@ -69,11 +71,19 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     onSendMessage(userMsg);
   };
 
+  const handleDeleteUser = (userId: string, userName: string) => {
+      if (window.confirm(`Are you sure you want to remove ${userName} from the session?`)) {
+          onRemoveUser?.(userId);
+      }
+  };
+
   // Sort users: Online first, then by name
   const sortedUsers = [...users].sort((a, b) => {
     if (a.isOnline === b.isOnline) return a.name.localeCompare(b.name);
     return a.isOnline ? -1 : 1;
   });
+
+  const isScrumMaster = currentUser.role === UserRole.SCRUM_MASTER;
 
   return (
     <div className="flex flex-col h-[40vh] md:h-full bg-slate-800 border-t border-slate-700 md:border-t-0 md:border-l md:w-80">
@@ -155,7 +165,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
         <div className="flex-1 overflow-y-auto p-2 scrollbar-hide">
           <div className="space-y-1">
             {sortedUsers.map(user => (
-              <div key={user.id} className="flex items-center gap-3 p-2 rounded hover:bg-slate-700/50 transition-colors">
+              <div key={user.id} className="flex items-center gap-3 p-2 rounded hover:bg-slate-700/50 transition-colors group">
                 <div className="relative">
                   <div className={`
                     w-8 h-8 rounded-full flex items-center justify-center text-lg border
@@ -177,6 +187,19 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                   </div>
                   <p className="text-xs text-slate-500">{user.role}</p>
                 </div>
+
+                {/* Scrum Master Remove Button */}
+                {isScrumMaster && user.id !== currentUser.id && (
+                    <button 
+                        onClick={() => handleDeleteUser(user.id, user.name)}
+                        className="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-red-500 p-1 transition-all"
+                        title="Remove User"
+                    >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                        </svg>
+                    </button>
+                )}
               </div>
             ))}
           </div>

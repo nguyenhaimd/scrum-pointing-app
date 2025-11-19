@@ -1,4 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
+// @ts-ignore
+import confetti from 'canvas-confetti';
 import { User, Story, UserRole } from '../types';
 import Card from './Card';
 import Button from './Button';
@@ -45,6 +47,18 @@ const PokerTable: React.FC<PokerTableProps> = ({
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  // Celebration Effect
+  useEffect(() => {
+    if (areVotesRevealed) {
+      confetti({
+        particleCount: 150,
+        spread: 100,
+        origin: { y: 0.6 },
+        colors: ['#6366f1', '#8b5cf6', '#ec4899', '#10b981', '#f59e0b']
+      });
+    }
+  }, [areVotesRevealed]);
 
   // 1. Seating Arrangement
   const seatedUsers = useMemo(() => {

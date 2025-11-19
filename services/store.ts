@@ -1,7 +1,8 @@
-import { useEffect, useState, useCallback } from 'react';
-import { AppState, Action, User, Story } from '../types';
+import { useEffect, useState, useCallback, useRef } from 'react';
+import { AppState, Action, User, Story, UserRole } from '../types';
 import { db } from '../firebaseConfig';
 import { ref, onValue, set, update, remove, onDisconnect, push } from 'firebase/database';
+import { STALE_USER_TIMEOUT } from '../constants';
 
 // Initial empty state
 const initialState: AppState = {
@@ -17,6 +18,10 @@ export const useAppStore = (currentUser: User | null) => {
   // Initialize connected state based on DB availability. 
   // If DB is missing, start as false so the UI can show an error banner if needed.
   const [isConnected, setIsConnected] = useState(!!db);
+  
+  // Use a ref to access the latest state inside intervals without triggering re-renders
+  const usersRef = useRef<Record<string, User>>({});
+
   const roomId = currentUser?.room ? currentUser.room.replace(/[^a-zA-Z0-9]/g, '_') : 'default'; // Sanitize room name for path
 
   // 1. LISTEN to Firebase Data
@@ -44,8 +49,11 @@ export const useAppStore = (currentUser: User | null) => {
         // Sort chat by timestamp just in case
         chatArray.sort((a: any, b: any) => a.timestamp - b.timestamp);
 
+        const users = data.users || {};
+        usersRef.current = users;
+
         setState({
-          users: data.users || {},
+          users: users,
           stories: storiesArray as Story[],
           currentStoryId: data.currentStoryId || null,
           areVotesRevealed: data.areVotesRevealed || false,
@@ -53,13 +61,14 @@ export const useAppStore = (currentUser: User | null) => {
         });
       } else {
         setState(initialState);
+        usersRef.current = {};
       }
     });
 
     return () => unsubscribe();
   }, [roomId, currentUser]);
 
-  // 2. MANAGE PRESENCE (Self) & CONNECTION
+  // 2. MANAGE PRESENCE (Self) & CONNECTION & CLEANUP
   useEffect(() => {
     if (!currentUser || !db) return;
 
@@ -75,8 +84,6 @@ export const useAppStore = (currentUser: User | null) => {
         // 1. Establish the onDisconnect hook to mark us offline if we drop.
         onDisconnect(userRef).update({ isOnline: false }).then(() => {
              // 2. Set us as online.
-             // We use update to ensure we don't overwrite other fields if they changed,
-             // but we do want to ensure our latest user details are synced.
             update(userRef, { 
                 ...currentUser,
                 isOnline: true, 
@@ -86,12 +93,28 @@ export const useAppStore = (currentUser: User | null) => {
       }
     });
 
-    // Keep heartbeat alive just in case (optional in Firebase but good for "idle" logic)
+    // Keep heartbeat alive and Clean up stale users
     const interval = setInterval(() => {
-        if (db) {
-            update(userRef, { lastHeartbeat: Date.now() }).catch(() => {});
+        if (!db) return;
+
+        const now = Date.now();
+
+        // 1. Update my heartbeat
+        update(userRef, { lastHeartbeat: now }).catch(() => {});
+
+        // 2. If I am the Scrum Master, perform cleanup duty
+        if (currentUser.role === UserRole.SCRUM_MASTER) {
+            const currentUsers = usersRef.current;
+            Object.values(currentUsers).forEach((user) => {
+                // If user hasn't sent a heartbeat in X minutes, remove them entirely
+                if (now - user.lastHeartbeat > STALE_USER_TIMEOUT) {
+                    console.log(`Removing stale user: ${user.name}`);
+                    remove(ref(db, `sessions/${roomId}/users/${user.id}`));
+                }
+            });
         }
-    }, 60000);
+
+    }, 60000); // Run every minute
 
     return () => {
         unsubscribeConnected();
@@ -178,6 +201,10 @@ export const useAppStore = (currentUser: User | null) => {
         // Reset current story state
         await update(ref(db, rootPath), { currentStoryId: null, areVotesRevealed: false });
         break;
+        
+      case 'REMOVE_USER':
+         await remove(ref(db, `${rootPath}/users/${action.payload}`));
+         break;
 
       case 'JOIN_SESSION':
         // Handled by the effect above
