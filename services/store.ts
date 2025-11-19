@@ -49,11 +49,29 @@ export const useAppStore = (currentUser: User | null) => {
         // Sort chat by timestamp just in case
         chatArray.sort((a: any, b: any) => a.timestamp - b.timestamp);
 
-        const users = data.users || {};
-        usersRef.current = users;
+        // Sanitize Users: Ensure ID matches key and name is string
+        const rawUsers = data.users || {};
+        const cleanUsers: Record<string, User> = {};
+
+        Object.entries(rawUsers).forEach(([key, value]: [string, any]) => {
+            // Defensive check: ensure value is an object to avoid crashes
+            if (value && typeof value === 'object') {
+                cleanUsers[key] = {
+                    ...value,
+                    id: key, // Force ID to match key for deletability
+                    name: typeof value.name === 'string' ? value.name : 'Unknown User',
+                    role: value.role || UserRole.OBSERVER,
+                    isOnline: !!value.isOnline,
+                    avatar: value.avatar || '👤',
+                    deviceType: value.deviceType || 'desktop'
+                } as User;
+            }
+        });
+
+        usersRef.current = cleanUsers;
 
         setState({
-          users: users,
+          users: cleanUsers,
           stories: storiesArray as Story[],
           currentStoryId: data.currentStoryId || null,
           areVotesRevealed: data.areVotesRevealed || false,
@@ -198,13 +216,14 @@ export const useAppStore = (currentUser: User | null) => {
       case 'CLEAR_QUEUE':
         // Remove all stories
         await set(ref(db, `${rootPath}/stories`), {});
-        // Remove chat messages
+        // Remove chat messages to clear history
         await remove(ref(db, `${rootPath}/chatMessages`));
         // Reset current story state
         await update(ref(db, rootPath), { currentStoryId: null, areVotesRevealed: false });
         break;
         
       case 'REMOVE_USER':
+         // This works because we ensured IDs match keys in the sanitation step above
          await remove(ref(db, `${rootPath}/users/${action.payload}`));
          break;
 

@@ -77,10 +77,10 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       }
   };
 
-  // Sort users: Online first, then by name
+  // Sort users: Online first, then by name. Defensive coding for missing names.
   const sortedUsers = [...users].sort((a, b) => {
-    const nameA = a.name || 'Unknown';
-    const nameB = b.name || 'Unknown';
+    const nameA = String(a.name || 'Unknown');
+    const nameB = String(b.name || 'Unknown');
 
     if (a.isOnline === b.isOnline) return nameA.localeCompare(nameB);
     return a.isOnline ? -1 : 1;
