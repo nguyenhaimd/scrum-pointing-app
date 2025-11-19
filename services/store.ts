@@ -27,7 +27,15 @@ export const useAppStore = (currentUser: User | null) => {
       if (data) {
         // Firebase stores lists as Objects with IDs as keys. 
         // We convert stories back to Array for the UI to consume easily.
-        const storiesArray = data.stories ? Object.values(data.stories) : [];
+        const rawStories = data.stories ? Object.values(data.stories) : [];
+        
+        // Sanitize stories to ensure arrays exist (prevents 'length of undefined' errors)
+        const storiesArray = rawStories.map((s: any) => ({
+            ...s,
+            acceptanceCriteria: Array.isArray(s.acceptanceCriteria) ? s.acceptanceCriteria : [],
+            votes: s.votes || {}
+        }));
+
         const chatArray = data.chatMessages ? Object.values(data.chatMessages) : [];
         
         // Sort chat by timestamp just in case

@@ -147,7 +147,7 @@ const App: React.FC = () => {
                 <div className="absolute top-4 left-4 right-4 md:left-10 md:right-10 bg-slate-800/90 backdrop-blur rounded-xl p-4 border border-slate-700 shadow-lg z-20 max-h-32 overflow-y-auto">
                     <h3 className="font-bold text-lg text-white sticky top-0">{currentStory.title}</h3>
                     <p className="text-slate-300 text-sm mt-1">{currentStory.description || 'No description provided.'}</p>
-                    {currentStory.acceptanceCriteria.length > 0 && (
+                    {currentStory.acceptanceCriteria?.length > 0 && (
                         <ul className="mt-2 list-disc list-inside text-xs text-slate-400">
                             {currentStory.acceptanceCriteria.map((ac, i) => <li key={i}>{ac}</li>)}
                         </ul>

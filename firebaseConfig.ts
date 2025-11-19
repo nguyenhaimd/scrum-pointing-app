@@ -1,4 +1,4 @@
-import * as firebaseApp from 'firebase/app';
+import { initializeApp } from 'firebase/app';
 import { getDatabase } from 'firebase/database';
 
 // Helper to safely access environment variables in both Vite (browser) and other environments.
@@ -35,6 +35,6 @@ if (!firebaseConfig.apiKey) {
   console.error("Firebase Configuration is missing! Make sure you have set your .env variables (VITE_FIREBASE_API_KEY, etc).");
 }
 
-// Use namespace import to access initializeApp to avoid TS module resolution issues
-const app = firebaseApp.initializeApp(firebaseConfig);
+// Use named import to initializeApp to avoid TS module resolution issues
+const app = initializeApp(firebaseConfig);
 export const db = getDatabase(app);
