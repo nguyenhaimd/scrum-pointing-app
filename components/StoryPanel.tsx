@@ -22,7 +22,8 @@ const StoryPanel: React.FC<StoryPanelProps> = ({
   const [newTitle, setNewTitle] = useState('');
   const [newDescription, setNewDescription] = useState('');
 
-  const isScrumMaster = userRole === UserRole.SCRUM_MASTER || userRole === UserRole.PRODUCT_OWNER;
+  // Strict permission: Only Scrum Master can edit/manage. PO is read-only.
+  const canManageStories = userRole === UserRole.SCRUM_MASTER;
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,8 +44,8 @@ const StoryPanel: React.FC<StoryPanelProps> = ({
   };
 
   return (
-    <div className="bg-slate-800 border-b border-slate-700 md:border-b-0 md:border-r md:w-80 flex flex-col h-[40vh] md:h-full transition-all">
-      <div className="p-4 border-b border-slate-700 flex justify-between items-center">
+    <div className="bg-slate-800 border-b border-slate-700 md:border-b-0 md:border-r md:w-80 flex flex-col h-full transition-all">
+      <div className="p-4 border-b border-slate-700 flex justify-between items-center shrink-0">
         <h2 className="font-semibold text-slate-200">Stories</h2>
         <div className="flex gap-2">
              <span className="text-xs bg-slate-700 px-2 py-1 rounded text-slate-400">{stories.length} Total</span>
@@ -54,7 +55,8 @@ const StoryPanel: React.FC<StoryPanelProps> = ({
       <div className="flex-1 overflow-y-auto p-4 space-y-3 scrollbar-hide">
         {stories.length === 0 && (
           <div className="text-center text-slate-500 mt-10 text-sm">
-            No stories yet.<br/>Add one to start pointing.
+            No stories yet.<br/>
+            {canManageStories ? "Add one to start pointing." : "Waiting for Scrum Master."}
           </div>
         )}
         {stories.map(story => {
@@ -69,7 +71,7 @@ const StoryPanel: React.FC<StoryPanelProps> = ({
               `}
             >
               {/* Delete Button (Only for SM, shows on hover) */}
-              {isScrumMaster && (
+              {canManageStories && (
                 <button
                   onClick={(e) => { e.stopPropagation(); onDeleteStory?.(story.id); }}
                   className="absolute top-2 right-2 text-slate-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity p-1 z-10"
@@ -80,8 +82,8 @@ const StoryPanel: React.FC<StoryPanelProps> = ({
               )}
 
               <div 
-                className="cursor-pointer pr-6"
-                onClick={() => isScrumMaster && onSelectStory(story.id)}
+                className={`${canManageStories ? 'cursor-pointer' : ''} pr-6`}
+                onClick={() => canManageStories && onSelectStory(story.id)}
               >
                 <div className="flex justify-between items-start mb-1">
                     <h3 className="font-medium text-sm text-slate-200 line-clamp-2">{story.title}</h3>
@@ -98,8 +100,8 @@ const StoryPanel: React.FC<StoryPanelProps> = ({
                 </div>
               </div>
               
-              {/* Visible 'Vote' Button for Scrum Masters */}
-              {isScrumMaster && !isCurrent && story.status !== 'completed' && (
+              {/* Visible 'Start Voting' Button for Scrum Masters */}
+              {canManageStories && !isCurrent && story.status !== 'completed' && (
                 <div className="mt-3 pt-2 border-t border-slate-600/50 flex justify-end">
                    <button 
                      onClick={(e) => { e.stopPropagation(); onSelectStory(story.id); }}
@@ -115,8 +117,9 @@ const StoryPanel: React.FC<StoryPanelProps> = ({
         })}
       </div>
 
-      {isScrumMaster && (
-        <div className="p-4 bg-slate-800 border-t border-slate-700 shadow-lg">
+      {/* Add Story Section - STRICTLY SM ONLY */}
+      {canManageStories && (
+        <div className="p-4 bg-slate-800 border-t border-slate-700 shadow-lg shrink-0">
           <label className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-3 block">Add New Story</label>
           <div className="flex flex-col gap-3">
             <div>

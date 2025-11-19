@@ -31,10 +31,10 @@ const Login: React.FC<LoginProps> = ({ onJoin }) => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-900 p-4 overflow-y-auto">
-      <div className="w-full max-w-md bg-slate-800 rounded-2xl shadow-xl border border-slate-700 p-8 my-8">
+      <div className="w-full max-w-md bg-slate-800 rounded-2xl shadow-xl border border-slate-700 p-6 md:p-8 my-8">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-cyan-400">
-            Gemini Scrum Poker
+            HighWind's Scrum Poker
           </h1>
           <p className="text-slate-400 mt-2">Real-time estimation with AI powers</p>
         </div>
@@ -72,7 +72,7 @@ const Login: React.FC<LoginProps> = ({ onJoin }) => {
             <label className="block text-sm font-medium text-slate-300 mb-2">
               Choose Avatar
             </label>
-            <div className="grid grid-cols-8 gap-2 p-2 bg-slate-900 rounded-lg border border-slate-700">
+            <div className="grid grid-cols-6 sm:grid-cols-8 gap-2 p-2 bg-slate-900 rounded-lg border border-slate-700 max-h-48 overflow-y-auto scrollbar-hide">
               {AVATARS.map((avatar) => (
                 <button
                   key={avatar}

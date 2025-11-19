@@ -8,9 +8,12 @@ import { useAppStore } from './services/store';
 import { User } from './types';
 import { USER_STORAGE_KEY } from './constants';
 
+type MobileView = 'stories' | 'table' | 'chat';
+
 const App: React.FC = () => {
   // Local User State
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [mobileView, setMobileView] = useState<MobileView>('table');
 
   // Try to restore session on mount
   useEffect(() => {
@@ -54,13 +57,13 @@ const App: React.FC = () => {
     <div className="flex flex-col h-screen bg-slate-900 text-white overflow-hidden">
       
       {/* Header */}
-      <header className="h-16 bg-slate-800 border-b border-slate-700 flex items-center justify-between px-4 md:px-6 shrink-0">
+      <header className="h-16 bg-slate-800 border-b border-slate-700 flex items-center justify-between px-4 md:px-6 shrink-0 z-50">
         <div className="flex items-center gap-3">
             <div className="bg-indigo-600 p-1.5 rounded-lg">
                 <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
             </div>
-            <div className="hidden md:block">
-                <h1 className="font-bold text-lg leading-none">Gemini Scrum Poker</h1>
+            <div className="hidden sm:block">
+                <h1 className="font-bold text-lg leading-none">HighWind's Scrum Poker</h1>
                 <p className="text-xs text-slate-400">Room: {currentUser.room}</p>
             </div>
         </div>
@@ -75,7 +78,7 @@ const App: React.FC = () => {
             
             <div className="flex items-center gap-3 pl-4 border-l border-slate-700">
                 <div className="text-right">
-                    <div className="text-sm font-bold text-white">{currentUser.name}</div>
+                    <div className="text-sm font-bold text-white max-w-[100px] truncate">{currentUser.name}</div>
                     <div className="text-xs text-indigo-400">{currentUser.role}</div>
                 </div>
                 <div className="w-8 h-8 flex items-center justify-center bg-slate-700 rounded-full text-lg">
@@ -88,21 +91,54 @@ const App: React.FC = () => {
         </div>
       </header>
 
-      {/* Main Content Grid */}
-      <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
-        
-        {/* Left Sidebar: Stories */}
-        <StoryPanel 
-            stories={state.stories}
-            currentStoryId={state.currentStoryId}
-            userRole={currentUser.role}
-            onAddStory={(story) => dispatch({ type: 'ADD_STORY', payload: story })}
-            onDeleteStory={(id) => dispatch({ type: 'DELETE_STORY', payload: id })}
-            onSelectStory={(id) => dispatch({ type: 'SET_CURRENT_STORY', payload: id })}
-        />
+      {/* Mobile Tabs Navigation */}
+      <div className="md:hidden flex border-b border-slate-700 bg-slate-800 shrink-0 text-sm font-medium">
+          <button 
+            onClick={() => setMobileView('stories')}
+            className={`flex-1 py-3 text-center border-b-2 ${mobileView === 'stories' ? 'border-indigo-500 text-indigo-400 bg-slate-700/30' : 'border-transparent text-slate-400'}`}
+          >
+            Stories
+          </button>
+          <button 
+            onClick={() => setMobileView('table')}
+            className={`flex-1 py-3 text-center border-b-2 ${mobileView === 'table' ? 'border-indigo-500 text-indigo-400 bg-slate-700/30' : 'border-transparent text-slate-400'}`}
+          >
+            Table
+          </button>
+          <button 
+            onClick={() => setMobileView('chat')}
+            className={`flex-1 py-3 text-center border-b-2 ${mobileView === 'chat' ? 'border-indigo-500 text-indigo-400 bg-slate-700/30' : 'border-transparent text-slate-400'}`}
+          >
+            Chat
+          </button>
+      </div>
 
-        {/* Center: Poker Table */}
-        <div className="flex-1 relative flex flex-col bg-slate-900">
+      {/* Main Content Grid */}
+      <div className="flex-1 flex overflow-hidden relative">
+        
+        {/* Left Sidebar: Stories (Hidden on mobile unless selected) */}
+        <div className={`
+            absolute inset-0 z-20 bg-slate-900 md:static md:w-80 md:flex md:flex-col md:border-r md:border-slate-700
+            ${mobileView === 'stories' ? 'flex flex-col' : 'hidden'}
+        `}>
+            <StoryPanel 
+                stories={state.stories}
+                currentStoryId={state.currentStoryId}
+                userRole={currentUser.role}
+                onAddStory={(story) => dispatch({ type: 'ADD_STORY', payload: story })}
+                onDeleteStory={(id) => dispatch({ type: 'DELETE_STORY', payload: id })}
+                onSelectStory={(id) => {
+                    dispatch({ type: 'SET_CURRENT_STORY', payload: id });
+                    setMobileView('table'); // Switch to table on mobile after selection
+                }}
+            />
+        </div>
+
+        {/* Center: Poker Table (Hidden on mobile unless selected) */}
+        <div className={`
+            flex-1 relative flex-col bg-slate-900
+            ${mobileView === 'table' ? 'flex' : 'hidden md:flex'}
+        `}>
             {/* Main Visual Area */}
             <PokerTable 
                 users={onlineUsers}
@@ -114,11 +150,8 @@ const App: React.FC = () => {
                 onNext={() => {
                     if(!currentStory) return;
                     
-                    // 1. Calculate result (Mode or Average, user requested just finishing)
-                    // We'll just take the most common vote as the "suggested" final point
+                    // Calculate result (Mode)
                     const validVotes = Object.values(currentStory.votes).filter(v => v !== '?' && v !== '☕');
-                    
-                    // Simple mode calculation
                     const counts: Record<string, number> = {};
                     let maxCount = 0;
                     let mode = validVotes[0] || 0;
@@ -134,7 +167,7 @@ const App: React.FC = () => {
 
                     dispatch({ type: 'FINISH_STORY', payload: { storyId: currentStory.id, points: mode } });
                     
-                    // 2. Automatically select next pending story
+                    // Automatically select next pending story
                     const nextStory = state.stories.find(s => s.status === 'pending' && s.id !== currentStory.id);
                     if (nextStory) {
                         dispatch({ type: 'SET_CURRENT_STORY', payload: nextStory.id });
@@ -144,11 +177,11 @@ const App: React.FC = () => {
 
             {/* Current Story Detail Overlay (when active) */}
             {currentStory && (
-                <div className="absolute top-4 left-4 right-4 md:left-10 md:right-10 bg-slate-800/90 backdrop-blur rounded-xl p-4 border border-slate-700 shadow-lg z-20 max-h-32 overflow-y-auto">
-                    <h3 className="font-bold text-lg text-white sticky top-0">{currentStory.title}</h3>
-                    <p className="text-slate-300 text-sm mt-1">{currentStory.description || 'No description provided.'}</p>
+                <div className="absolute top-4 left-4 right-4 md:left-10 md:right-10 bg-slate-800/90 backdrop-blur rounded-xl p-3 md:p-4 border border-slate-700 shadow-lg z-20 max-h-32 overflow-y-auto">
+                    <h3 className="font-bold text-base md:text-lg text-white sticky top-0">{currentStory.title}</h3>
+                    <p className="text-slate-300 text-xs md:text-sm mt-1">{currentStory.description || 'No description provided.'}</p>
                     {currentStory.acceptanceCriteria?.length > 0 && (
-                        <ul className="mt-2 list-disc list-inside text-xs text-slate-400">
+                        <ul className="mt-2 list-disc list-inside text-[10px] md:text-xs text-slate-400">
                             {currentStory.acceptanceCriteria.map((ac, i) => <li key={i}>{ac}</li>)}
                         </ul>
                     )}
@@ -165,14 +198,19 @@ const App: React.FC = () => {
             />
         </div>
 
-        {/* Right Sidebar: Chat */}
-        <ChatPanel 
-            messages={state.chatMessages}
-            currentUser={currentUser}
-            users={allUsers}
-            currentStory={currentStory}
-            onSendMessage={(msg) => dispatch({ type: 'SEND_MESSAGE', payload: msg })}
-        />
+        {/* Right Sidebar: Chat (Hidden on mobile unless selected) */}
+        <div className={`
+            absolute inset-0 z-20 bg-slate-900 md:static md:w-80 md:flex md:flex-col md:border-l md:border-slate-700
+            ${mobileView === 'chat' ? 'flex flex-col' : 'hidden'}
+        `}>
+            <ChatPanel 
+                messages={state.chatMessages}
+                currentUser={currentUser}
+                users={allUsers}
+                currentStory={currentStory}
+                onSendMessage={(msg) => dispatch({ type: 'SEND_MESSAGE', payload: msg })}
+            />
+        </div>
 
       </div>
     </div>

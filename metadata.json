@@ -1,5 +1,5 @@
 {
-  "name": "Gemini Scrum Poker",
+  "name": "HighWind's Scrum Poker",
   "description": "A real-time, multi-role Scrum Poker application powered by Gemini AI for story refinement and chat assistance. Supports distributed teams with synchronized states across tabs.",
   "requestFramePermissions": []
 }
