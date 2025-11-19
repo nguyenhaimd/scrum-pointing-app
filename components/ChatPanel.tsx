@@ -79,7 +79,10 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
 
   // Sort users: Online first, then by name
   const sortedUsers = [...users].sort((a, b) => {
-    if (a.isOnline === b.isOnline) return a.name.localeCompare(b.name);
+    const nameA = a.name || 'Unknown';
+    const nameB = b.name || 'Unknown';
+
+    if (a.isOnline === b.isOnline) return nameA.localeCompare(nameB);
     return a.isOnline ? -1 : 1;
   });
 
@@ -181,7 +184,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-baseline">
                     <p className={`text-sm font-medium truncate ${user.isOnline ? 'text-slate-200' : 'text-slate-500'}`}>
-                      {user.name} {user.id === currentUser.id && '(You)'}
+                      {user.name || 'Unknown User'} {user.id === currentUser.id && '(You)'}
                     </p>
                     <DeviceIcon type={user.deviceType || 'desktop'} />
                   </div>
@@ -191,7 +194,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                 {/* Scrum Master Remove Button */}
                 {isScrumMaster && user.id !== currentUser.id && (
                     <button 
-                        onClick={() => handleDeleteUser(user.id, user.name)}
+                        onClick={() => handleDeleteUser(user.id, user.name || 'User')}
                         className="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-red-500 p-1 transition-all"
                         title="Remove User"
                     >
