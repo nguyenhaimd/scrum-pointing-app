@@ -82,9 +82,9 @@ export const playSound = {
     wow: () => {
         if (isMuted) return;
         try {
-            // Using a reliable source for the "Wow" sound effect
-            const audio = new Audio('https://www.myinstants.com/media/sounds/wow.mp3');
-            audio.volume = 0.5;
+            // Specific Owen Wilson Wow
+            const audio = new Audio('https://www.myinstants.com/media/sounds/owen-wilson-wow.mp3');
+            audio.volume = 0.6; 
             const playPromise = audio.play();
             
             if (playPromise !== undefined) {
