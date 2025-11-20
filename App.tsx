@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import Login from './components/Login';
 import PokerTable from './components/PokerTable';
@@ -47,6 +48,13 @@ const App: React.FC = () => {
       setCurrentUser(null);
       window.location.reload();
   };
+  
+  // Force logout if session ends
+  useEffect(() => {
+      if (state.sessionStatus === 'ended') {
+          handleLogout();
+      }
+  }, [state.sessionStatus]);
 
   // View
   if (!currentUser) {
@@ -138,7 +146,7 @@ const App: React.FC = () => {
                 userRole={currentUser.role}
                 onAddStory={(story) => dispatch({ type: 'ADD_STORY', payload: story })}
                 onDeleteStory={(id) => dispatch({ type: 'DELETE_STORY', payload: id })}
-                onClearQueue={() => dispatch({ type: 'CLEAR_QUEUE' })}
+                onClearQueue={() => dispatch({ type: 'END_SESSION' })}
                 onSelectStory={(id) => {
                     dispatch({ type: 'SET_CURRENT_STORY', payload: id });
                     setMobileView('table'); // Switch to table on mobile after selection
@@ -157,25 +165,31 @@ const App: React.FC = () => {
                 currentStory={currentStory}
                 areVotesRevealed={state.areVotesRevealed}
                 currentUserRole={currentUser.role}
+                timer={state.timer}
+                onStartTimer={() => dispatch({ type: 'START_TIMER' })}
+                onPauseTimer={() => dispatch({ type: 'PAUSE_TIMER' })}
+                onResetTimer={() => dispatch({ type: 'RESET_TIMER' })}
                 onReveal={() => dispatch({ type: 'REVEAL_VOTES' })}
                 onReset={() => dispatch({ type: 'RESET_VOTES' })}
+                lastReaction={state.lastReaction}
+                onReaction={(emoji) => dispatch({ type: 'SEND_REACTION', payload: { emoji, userId: currentUser.id } })}
                 onNext={(finalPoints) => {
                     if(!currentStory) return;
-                    
-                    // Use the passed finalPoints (manually selected by SM)
                     dispatch({ type: 'FINISH_STORY', payload: { storyId: currentStory.id, points: finalPoints } });
-                    
-                    // Automatically select next pending story
-                    const nextStory = state.stories.find(s => s.status === 'pending' && s.id !== currentStory.id);
+                }}
+                onNextStory={() => {
+                    const nextStory = state.stories.find(s => s.status === 'pending' && s.id !== currentStory?.id);
                     if (nextStory) {
                         dispatch({ type: 'SET_CURRENT_STORY', payload: nextStory.id });
+                    } else {
+                        dispatch({ type: 'SET_CURRENT_STORY', payload: null });
                     }
                 }}
             />
 
             {/* Current Story Detail Overlay (when active) */}
             {currentStory && (
-                <div className="absolute top-4 left-4 right-4 md:left-10 md:right-10 bg-slate-800/90 backdrop-blur rounded-xl p-3 md:p-4 border border-slate-700 shadow-lg z-20 max-h-32 overflow-y-auto">
+                <div className="absolute top-4 left-4 right-4 md:left-10 md:right-10 bg-slate-800/90 backdrop-blur rounded-xl p-3 md:p-4 border border-slate-700 shadow-lg z-20 max-h-32 overflow-y-auto mt-12 md:mt-0">
                     <h3 className="font-bold text-base md:text-lg text-white sticky top-0">{currentStory.title}</h3>
                     <p className="text-slate-300 text-xs md:text-sm mt-1">{currentStory.description || 'No description provided.'}</p>
                     {currentStory.acceptanceCriteria?.length > 0 && (
@@ -186,14 +200,16 @@ const App: React.FC = () => {
                 </div>
             )}
             
-            {/* Voting Hand */}
-            <VotingControls 
-                currentStory={currentStory}
-                currentUser={currentUser}
-                selectedVote={currentStory?.votes?.[currentUser.id]}
-                disabled={state.areVotesRevealed}
-                onVote={(val) => dispatch({ type: 'VOTE', payload: { userId: currentUser.id, value: val } })}
-            />
+            {/* Voting Hand (Disabled if story is completed) */}
+            {currentStory?.status !== 'completed' && (
+                <VotingControls 
+                    currentStory={currentStory}
+                    currentUser={currentUser}
+                    selectedVote={currentStory?.votes?.[currentUser.id]}
+                    disabled={state.areVotesRevealed}
+                    onVote={(val) => dispatch({ type: 'VOTE', payload: { userId: currentUser.id, value: val } })}
+                />
+            )}
         </div>
 
         {/* Right Sidebar: Chat (Hidden on mobile unless selected) */}

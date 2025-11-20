@@ -1,3 +1,4 @@
+
 export enum UserRole {
   DEVELOPER = 'Developer',
   SCRUM_MASTER = 'Scrum Master',
@@ -41,12 +42,28 @@ export interface ChatMessage {
   isAi?: boolean;
 }
 
+export interface TimerState {
+  status: 'running' | 'paused';
+  startTime: number | null; // Timestamp when timer started (if running)
+  accumulated: number; // Total milliseconds elapsed before current start
+}
+
+export interface Reaction {
+  id: string;
+  userId: string;
+  emoji: string;
+  timestamp: number;
+}
+
 export interface AppState {
   users: Record<string, User>;
   stories: Story[];
   currentStoryId: string | null;
   areVotesRevealed: boolean;
   chatMessages: ChatMessage[];
+  timer: TimerState;
+  lastReaction: Reaction | null;
+  sessionStatus: 'active' | 'ended';
 }
 
 export type Action =
@@ -54,7 +71,7 @@ export type Action =
   | { type: 'HEARTBEAT'; payload: string } // userId
   | { type: 'ADD_STORY'; payload: Story }
   | { type: 'DELETE_STORY'; payload: string }
-  | { type: 'SET_CURRENT_STORY'; payload: string }
+  | { type: 'SET_CURRENT_STORY'; payload: string | null }
   | { type: 'VOTE'; payload: { userId: string; value: string | number } }
   | { type: 'REVEAL_VOTES' }
   | { type: 'RESET_VOTES' }
@@ -64,4 +81,9 @@ export type Action =
   | { type: 'REQUEST_STATE' }
   | { type: 'UPDATE_STORY'; payload: Story } // For AI updates
   | { type: 'CLEAR_QUEUE' }
-  | { type: 'REMOVE_USER'; payload: string }; // userId
+  | { type: 'REMOVE_USER'; payload: string } // userId
+  | { type: 'START_TIMER' }
+  | { type: 'PAUSE_TIMER' }
+  | { type: 'RESET_TIMER' }
+  | { type: 'SEND_REACTION'; payload: { emoji: string; userId: string } }
+  | { type: 'END_SESSION' };

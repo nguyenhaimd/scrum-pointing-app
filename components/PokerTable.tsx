@@ -1,10 +1,14 @@
-import React, { useMemo, useState, useEffect } from 'react';
+
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 // @ts-ignore
 import confetti from 'canvas-confetti';
-import { User, Story, UserRole } from '../types';
+import { User, Story, UserRole, TimerState, Reaction } from '../types';
 import Card from './Card';
 import Button from './Button';
-import { POINTING_SCALE } from '../constants';
+import Timer from './Timer';
+import ReactionOverlay from './ReactionOverlay';
+import { POINTING_SCALE, REACTION_EMOJIS } from '../constants';
+import { playSound } from '../services/soundService';
 
 interface PokerTableProps {
   users: User[];
@@ -12,8 +16,15 @@ interface PokerTableProps {
   areVotesRevealed: boolean;
   onReveal: () => void;
   onNext: (finalPoints: string | number) => void;
+  onNextStory: () => void;
   onReset: () => void;
   currentUserRole: UserRole;
+  timer: TimerState;
+  onStartTimer: () => void;
+  onPauseTimer: () => void;
+  onResetTimer: () => void;
+  lastReaction: Reaction | null;
+  onReaction: (emoji: string) => void;
 }
 
 // Helper for Device Icons
@@ -33,8 +44,15 @@ const PokerTable: React.FC<PokerTableProps> = ({
   areVotesRevealed,
   onReveal,
   onNext,
+  onNextStory,
   onReset,
-  currentUserRole
+  currentUserRole,
+  timer,
+  onStartTimer,
+  onPauseTimer,
+  onResetTimer,
+  lastReaction,
+  onReaction
 }) => {
   // State for manually selected final score
   const [manualFinalScore, setManualFinalScore] = useState<string | number | null>(null);
@@ -42,15 +60,21 @@ const PokerTable: React.FC<PokerTableProps> = ({
   // Responsive state
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' ? window.innerWidth < 768 : false);
 
+  // Audio Triggers
+  const prevVoteCount = useRef(0);
+  const prevRevealed = useRef(false);
+  const prevReactionId = useRef<string | null>(null);
+
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Celebration Effect
+  // 1. Celebration & Reveal Sound
   useEffect(() => {
-    if (areVotesRevealed) {
+    if (areVotesRevealed && !prevRevealed.current) {
+      playSound.reveal();
       confetti({
         particleCount: 150,
         spread: 100,
@@ -58,9 +82,30 @@ const PokerTable: React.FC<PokerTableProps> = ({
         colors: ['#6366f1', '#8b5cf6', '#ec4899', '#10b981', '#f59e0b']
       });
     }
+    prevRevealed.current = areVotesRevealed;
   }, [areVotesRevealed]);
 
-  // 1. Seating Arrangement
+  // 2. Vote Sound
+  const votes = currentStory?.votes || {};
+  const voteCount = Object.keys(votes).length;
+  useEffect(() => {
+      if (voteCount > prevVoteCount.current) {
+          playSound.vote();
+          if (navigator.vibrate) navigator.vibrate(50);
+      }
+      prevVoteCount.current = voteCount;
+  }, [voteCount]);
+
+  // 3. Reaction Sound
+  useEffect(() => {
+      if (lastReaction && lastReaction.id !== prevReactionId.current) {
+          playSound.reaction();
+          prevReactionId.current = lastReaction.id;
+      }
+  }, [lastReaction]);
+
+
+  // 4. Seating Arrangement
   const seatedUsers = useMemo(() => {
     const online = users.filter(u => u.isOnline);
     return online.sort((a, b) => {
@@ -73,13 +118,11 @@ const PokerTable: React.FC<PokerTableProps> = ({
     });
   }, [users]);
 
-  // 2. Calculate Statistics
-  const votes = currentStory?.votes || {};
+  // Statistics
   const votingUsers = seatedUsers.filter(u => u.role === UserRole.DEVELOPER);
-  const voteCount = Object.keys(votes).length;
   const devCount = votingUsers.length;
 
-  // Calculate Mode/Consensus whenever votes/revealed changes
+  // Calculate Mode/Consensus
   const calculatedMode = useMemo(() => {
     if (!currentStory || !areVotesRevealed) return null;
     
@@ -101,7 +144,6 @@ const PokerTable: React.FC<PokerTableProps> = ({
     return mode;
   }, [currentStory, areVotesRevealed]);
 
-  // Initialize manual score with calculated mode when revealed
   useEffect(() => {
       if (areVotesRevealed && calculatedMode !== null) {
           setManualFinalScore(calculatedMode);
@@ -126,25 +168,81 @@ const PokerTable: React.FC<PokerTableProps> = ({
   }, [votes, areVotesRevealed]);
 
   const canControl = currentUserRole === UserRole.SCRUM_MASTER;
+  const isStoryCompleted = currentStory?.status === 'completed';
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-4 relative overflow-hidden min-h-[50vh]">
       
+      <ReactionOverlay lastReaction={lastReaction} />
+
+      {/* Timer Overlay - Positioned Top Center */}
+      {currentStory && !isStoryCompleted && (
+          <div className="absolute top-4 z-30">
+              <Timer 
+                  timer={timer}
+                  onStart={onStartTimer}
+                  onPause={onPauseTimer}
+                  onReset={onResetTimer}
+                  canControl={canControl}
+              />
+          </div>
+      )}
+
+      {/* Reaction Bar (Bottom Right) */}
+      <div className="absolute bottom-20 right-4 md:bottom-8 md:right-8 z-50 flex flex-col gap-2 items-end pointer-events-auto">
+          <div className="bg-slate-800/90 backdrop-blur border border-slate-600 p-2 rounded-full flex flex-col gap-2 shadow-xl">
+              {REACTION_EMOJIS.map(emoji => (
+                  <button
+                    key={emoji}
+                    onClick={() => onReaction(emoji)}
+                    className="text-xl hover:scale-125 transition-transform active:scale-90 p-1"
+                    title="React"
+                  >
+                      {emoji}
+                  </button>
+              ))}
+          </div>
+      </div>
+
       {/* Table Surface */}
-      {/* Reduced width to 75% (mobile) and 80% (desktop) to allow space for avatars sitting on the edge */}
       <div className="relative w-[75%] sm:w-[80%] md:w-[80%] max-w-4xl aspect-square md:aspect-[2/1] bg-slate-800/50 rounded-full border-8 border-slate-700 shadow-2xl flex items-center justify-center transition-all">
         
         {/* Center Content (Results) */}
-        <div className="text-center z-10 px-4 w-full max-w-md">
+        <div className="text-center z-10 px-4 w-full max-w-md relative">
           {!currentStory ? (
             <div className="text-slate-400">
               <p className="text-lg md:text-xl font-light">Waiting for story...</p>
               <p className="text-xs md:text-sm opacity-50 mt-2">Scrum Master must select a story</p>
             </div>
+          ) : isStoryCompleted ? (
+            // COMPLETED STORY VIEW
+             <div className="animate-fade-in flex flex-col items-center">
+                <div className="text-emerald-400 mb-2 uppercase tracking-widest text-sm font-bold">Story Completed</div>
+                <div className="bg-emerald-600 text-white text-6xl font-bold w-32 h-40 rounded-xl flex items-center justify-center shadow-2xl border-4 border-emerald-400 mb-6">
+                    {currentStory.finalPoints}
+                </div>
+                
+                {canControl ? (
+                     <Button size="lg" variant="primary" onClick={onNextStory} className="shadow-lg animate-pulse">
+                        Next Story <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"></path></svg>
+                     </Button>
+                ) : (
+                    <p className="text-slate-400 animate-pulse">Waiting for Scrum Master to proceed...</p>
+                )}
+             </div>
           ) : (
-            <div className="animate-fade-in">
+            // ACTIVE STORY VIEW
+            <div className="animate-fade-in pt-8">
               {areVotesRevealed ? (
                 <div className="space-y-4 md:space-y-6">
+                    {/* Consensus Indicator */}
+                    <div className="absolute -top-16 left-1/2 transform -translate-x-1/2">
+                        <div className="bg-slate-900/90 backdrop-blur-sm border border-indigo-500/50 px-4 py-2 rounded-full shadow-xl flex items-center gap-3">
+                            <span className="text-indigo-300 text-xs uppercase font-bold">Consensus</span>
+                            <span className="text-2xl font-bold text-white">{calculatedMode ?? '-'}</span>
+                        </div>
+                    </div>
+
                   {/* Vote Breakdown */}
                   <div className="flex flex-wrap justify-center gap-4 md:gap-8 items-end">
                     {voteDistribution.map(([value, count]) => (
@@ -159,7 +257,7 @@ const PokerTable: React.FC<PokerTableProps> = ({
 
                   {/* Scrum Master Control Area for Final Decision */}
                   {canControl && (
-                    <div className="bg-slate-900/80 p-3 rounded-xl border border-slate-700 mt-4">
+                    <div className="bg-slate-900/80 p-3 rounded-xl border border-slate-700 mt-4 relative z-50">
                         <p className="text-xs text-slate-400 mb-2 uppercase font-bold">Select Final Points</p>
                         
                         {/* Mini Vote Picker for SM Override */}
@@ -228,7 +326,6 @@ const PokerTable: React.FC<PokerTableProps> = ({
           const total = seatedUsers.length;
           const angleRad = (index / total) * 2 * Math.PI - (Math.PI / 2);
           
-          // Adjusted radii to ensure avatars stay within the viewport since the table is now smaller
           const radiusX = isMobile ? 40 : 50; 
           const radiusY = isMobile ? 40 : 52; 
           
@@ -259,7 +356,7 @@ const PokerTable: React.FC<PokerTableProps> = ({
                   )}
                 </div>
                 
-                {currentStory && user.role === UserRole.DEVELOPER && (
+                {currentStory && !isStoryCompleted && user.role === UserRole.DEVELOPER && (
                   <div className={`absolute -top-8 md:-top-10 left-1/2 transform -translate-x-1/2 transition-all duration-300 ${hasVoted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
                      <Card 
                         value={userVote || ''} 

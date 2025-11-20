@@ -1,3 +1,4 @@
+
 import { UserRole } from './types';
 
 export const POINTING_SCALE = [1, 2, 3, 5, 8, 13];
@@ -10,7 +11,7 @@ export const ROLES = [
 ];
 
 export const AVATARS = [
-  '👨‍💻', '👩‍💻', '🤖', '🦄', '🦁', '🦊', '🐨', '🐙', 
+  '👨‍💻', '👩‍💻', '👨‍🍳', '🐶', '🤖', '🦄', '🦁', '🦊', '🐨', '🐙', 
   '🦉', '🐸', '🤠', '👽', '🧙‍♂️', '🦸‍♀️', '🕵️‍♂️', '👷',
   '🤴', '👸', '🧟', '🧞', '🦖', '🐋', '🐬', '🐡',
   '🦋', '🐝', '🐞', '🐢', '🐍', '🦎', '🐕', '🐈',
@@ -19,6 +20,8 @@ export const AVATARS = [
   '🐑', '🦙', '🐐', '🦌', '🐕‍🦺', '🦮', '🐩', '🐓',
   '🦃', '🦚', '🦜', '🦢', '🦩', '🕊️', '🐇', '🦝'
 ];
+
+export const REACTION_EMOJIS = ['👍', '👎', '🔥', '🚀', '😂', '🤔', '☕', '🎉'];
 
 export const STORAGE_KEY = 'gemini-scrum-poker-state';
 export const USER_STORAGE_KEY = 'gemini-scrum-poker-user';
