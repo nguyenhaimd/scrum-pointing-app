@@ -82,7 +82,10 @@ export const playSound = {
     wow: () => {
         if (isMuted) return;
 
+        let fallbackPlayed = false;
         const playFallback = () => {
+            if (fallbackPlayed) return;
+            fallbackPlayed = true;
             // Fallback to a "wow-like" synth sound (slide up/down)
             try {
                 const ctx = getContext();
@@ -109,19 +112,21 @@ export const playSound = {
         };
 
         try {
-            // Reliable Cloudinary URL
-            const audio = new Audio('https://res.cloudinary.com/dzs8t49si/video/upload/v1657662652/owen_wilson_wow_inc1.mp3');
+            // Using MyInstants URL as requested for the Owen Wilson "Wow" sound
+            const audio = new Audio('https://www.myinstants.com/media/sounds/6_1Njp68r.mp3');
             audio.volume = 1.0; 
             
-            audio.onerror = () => {
-                console.warn("Wow audio failed to load, playing fallback.");
+            // Handle loading errors (e.g. network failure)
+            audio.addEventListener('error', (e) => {
+                console.warn("Wow audio failed to load:", e);
                 playFallback();
-            };
+            });
 
             const playPromise = audio.play();
             
             if (playPromise !== undefined) {
                 playPromise.catch(error => {
+                    // Handle playback errors (e.g. NotAllowedError, NotSupportedError)
                     console.warn("Wow sound playback failed:", error);
                     playFallback();
                 });
