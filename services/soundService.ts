@@ -82,12 +82,18 @@ export const playSound = {
     wow: () => {
         if (isMuted) return;
         try {
-            // Using a reliable Internet Archive link for the "Wow" sound effect
-            const audio = new Audio('https://ia903403.us.archive.org/22/items/owen-wilson-wow/owen-wilson-wow.mp3');
-            audio.volume = 0.6;
-            audio.play().catch(e => console.warn("Could not play wow sound", e));
+            // Using a reliable source for the "Wow" sound effect
+            const audio = new Audio('https://www.myinstants.com/media/sounds/wow.mp3');
+            audio.volume = 0.5;
+            const playPromise = audio.play();
+            
+            if (playPromise !== undefined) {
+                playPromise.catch(error => {
+                    console.warn("Wow sound playback failed:", error);
+                });
+            }
         } catch (e) {
-            console.warn("Audio playback failed", e);
+            console.warn("Wow audio construction failed", e);
         }
     },
 

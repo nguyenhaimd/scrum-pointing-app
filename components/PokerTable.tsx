@@ -1,4 +1,5 @@
 
+
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 // @ts-ignore
 import confetti from 'canvas-confetti';
@@ -118,6 +119,7 @@ const PokerTable: React.FC<PokerTableProps> = ({
                  <button
                    key={emoji}
                    onClick={() => {
+                       console.log(`Reaction clicked: ${emoji} (Expect: ${WOW_EMOJI})`);
                        onReaction(emoji);
                        if (emoji === WOW_EMOJI) {
                            playSound.wow();
