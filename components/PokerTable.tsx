@@ -69,21 +69,22 @@ const PokerTable: React.FC<PokerTableProps> = ({
   // Stats Calculation
   const stats = useMemo(() => {
       if (!currentStory?.votes) return null;
-      const votes = Object.values(currentStory.votes).filter(v => v !== null && v !== '?');
+      const votes = Object.values(currentStory.votes).filter(v => v !== null);
       if (votes.length === 0) return null;
 
+      // Calculate Average (Only for numbers)
       const numericVotes = votes.filter(v => typeof v === 'number') as number[];
       const average = numericVotes.length > 0 
-        ? numericVotes.reduce((a, b) => a + b, 0) / numericVotes.length 
-        : 0;
+        ? (numericVotes.reduce((a, b) => a + b, 0) / numericVotes.length).toFixed(1)
+        : '-';
       
-      // Mode
+      // Mode (Can be '☕' or '?')
       const counts: Record<string, number> = {};
-      votes.forEach(v => counts[v] = (counts[v] || 0) + 1);
+      votes.forEach(v => counts[String(v)] = (counts[String(v)] || 0) + 1);
       const sortedCounts = Object.entries(counts).sort((a, b) => b[1] - a[1]);
       const mode = sortedCounts[0] ? sortedCounts[0][0] : null;
 
-      return { average: average.toFixed(1), mode, distribution: sortedCounts, totalVotes: votes.length };
+      return { average, mode, distribution: sortedCounts, totalVotes: votes.length };
   }, [currentStory?.votes]);
 
   const handleFinish = () => {
@@ -93,6 +94,7 @@ const PokerTable: React.FC<PokerTableProps> = ({
   };
   
   const isScrumMaster = currentUserRole === UserRole.SCRUM_MASTER;
+  const isCoffeeTime = areVotesRevealed && stats?.mode === '☕';
 
   return (
     <div className="flex flex-col h-full bg-slate-900 relative overflow-y-auto overflow-x-hidden">
@@ -131,7 +133,7 @@ const PokerTable: React.FC<PokerTableProps> = ({
        <div className="flex-1 flex flex-col items-center justify-start pt-2 sm:pt-4 pb-24 sm:pb-20 px-2 sm:px-4 gap-4 sm:gap-6">
            
            {/* Active Story Details (Integrated into flow) */}
-           {currentStory && (
+           {currentStory && !isCoffeeTime && (
                <div className="w-full max-w-2xl bg-slate-800/40 border border-slate-700/50 rounded-xl p-3 sm:p-4 text-center animate-fade-in">
                    <h3 className="text-lg sm:text-xl font-bold text-white leading-tight">{currentStory.title}</h3>
                    {currentStory.description && (
@@ -147,71 +149,86 @@ const PokerTable: React.FC<PokerTableProps> = ({
                {!currentStory ? (
                    <div className="text-slate-500 text-lg sm:text-xl animate-pulse">Waiting for story...</div>
                ) : areVotesRevealed && stats ? (
-                   <div className="w-full bg-slate-800/80 backdrop-blur-md border border-indigo-500/30 rounded-2xl p-4 sm:p-6 shadow-2xl animate-fade-in">
-                       <div className="flex flex-col md:flex-row items-center justify-between gap-4 sm:gap-6">
-                           {/* Key Stats */}
-                           <div className="flex gap-6 sm:gap-8">
-                               <div className="text-center">
-                                   <div className="text-[10px] sm:text-xs text-slate-400 uppercase tracking-wider mb-1">Average</div>
-                                   <div className="text-2xl sm:text-3xl font-bold text-indigo-400">{stats.average}</div>
-                               </div>
-                               <div className="text-center">
-                                   <div className="text-[10px] sm:text-xs text-slate-400 uppercase tracking-wider mb-1">Consensus</div>
-                                   <div className="text-2xl sm:text-3xl font-bold text-white">{stats.mode}</div>
-                               </div>
-                           </div>
-
-                           {/* Distribution Bar */}
-                           <div className="flex-1 w-full">
-                               <div className="text-[10px] sm:text-xs text-slate-400 mb-2">Vote Distribution</div>
-                               <div className="flex h-3 sm:h-4 rounded-full overflow-hidden bg-slate-700">
-                                   {stats.distribution.map(([val, count], i) => (
-                                       <div 
-                                         key={val}
-                                         style={{ width: `${(count / stats.totalVotes) * 100}%` }}
-                                         className={`h-full ${['bg-indigo-500', 'bg-purple-500', 'bg-pink-500', 'bg-blue-500'][i % 4]} border-r border-slate-900 last:border-0`}
-                                         title={`${count} votes for ${val}`}
-                                       />
-                                   ))}
-                               </div>
-                               <div className="flex justify-between mt-1">
-                                    {stats.distribution.map(([val, count]) => (
-                                        <div key={val} className="text-[10px] text-slate-500 text-center">
-                                            <span className="font-bold text-slate-300">{val}</span> <span className="opacity-50">({count})</span>
-                                        </div>
-                                    ))}
-                               </div>
-                           </div>
-                       </div>
-
-                       {/* SM Controls for Finishing */}
-                       {isScrumMaster && (
-                           <div className="mt-4 sm:mt-6 pt-4 border-t border-slate-700 flex flex-col sm:flex-row items-center justify-end gap-4">
-                               <div className="flex items-center gap-2">
-                                   <span className="text-sm text-slate-300">Final:</span>
-                                   <div className="flex bg-slate-900 rounded-lg p-1 border border-slate-700 overflow-x-auto max-w-[200px] sm:max-w-none scrollbar-hide">
-                                       {POINTING_SCALE.map(p => (
-                                           <button
-                                             key={p}
-                                             onClick={() => setManualFinalScore(p)}
-                                             className={`px-2 sm:px-3 py-1 rounded text-xs sm:text-sm font-bold transition-colors ${
-                                                 (manualFinalScore || stats.mode) == p 
-                                                 ? 'bg-indigo-600 text-white' 
-                                                 : 'text-slate-400 hover:text-white hover:bg-slate-800'
-                                             }`}
-                                           >
-                                               {p}
-                                           </button>
-                                       ))}
+                   isCoffeeTime ? (
+                        /* Special Coffee Break View */
+                        <div className="w-full bg-amber-900/30 backdrop-blur-md border border-amber-500/50 rounded-2xl p-6 shadow-2xl animate-fade-in flex flex-col items-center justify-center text-center">
+                             <div className="text-6xl mb-4 animate-bounce">☕</div>
+                             <h2 className="text-2xl font-bold text-amber-200 mb-2">Coffee Break!</h2>
+                             <p className="text-amber-100/80 mb-4">The team has decided to take a break.</p>
+                             {isScrumMaster && (
+                                 <Button onClick={onReset} className="bg-amber-600 hover:bg-amber-500 text-white border-amber-400">
+                                     Back to Work
+                                 </Button>
+                             )}
+                        </div>
+                   ) : (
+                       /* Standard Stats View */
+                       <div className="w-full bg-slate-800/80 backdrop-blur-md border border-indigo-500/30 rounded-2xl p-4 sm:p-6 shadow-2xl animate-fade-in">
+                           <div className="flex flex-col md:flex-row items-center justify-between gap-4 sm:gap-6">
+                               {/* Key Stats */}
+                               <div className="flex gap-6 sm:gap-8">
+                                   <div className="text-center">
+                                       <div className="text-[10px] sm:text-xs text-slate-400 uppercase tracking-wider mb-1">Average</div>
+                                       <div className="text-2xl sm:text-3xl font-bold text-indigo-400">{stats.average}</div>
+                                   </div>
+                                   <div className="text-center">
+                                       <div className="text-[10px] sm:text-xs text-slate-400 uppercase tracking-wider mb-1">Consensus</div>
+                                       <div className="text-2xl sm:text-3xl font-bold text-white">{stats.mode}</div>
                                    </div>
                                </div>
-                               <div className="flex gap-2 w-full sm:w-auto">
-                                   <Button size="sm" variant="secondary" onClick={onReset} className="flex-1 sm:flex-none">Re-Vote</Button>
-                                   <Button size="sm" onClick={handleFinish} className="flex-1 sm:flex-none">Complete</Button>
+
+                               {/* Distribution Bar */}
+                               <div className="flex-1 w-full">
+                                   <div className="text-[10px] sm:text-xs text-slate-400 mb-2">Vote Distribution</div>
+                                   <div className="flex h-3 sm:h-4 rounded-full overflow-hidden bg-slate-700">
+                                       {stats.distribution.map(([val, count], i) => (
+                                           <div 
+                                             key={val}
+                                             style={{ width: `${(count / stats.totalVotes) * 100}%` }}
+                                             className={`h-full ${['bg-indigo-500', 'bg-purple-500', 'bg-pink-500', 'bg-blue-500'][i % 4]} border-r border-slate-900 last:border-0`}
+                                             title={`${count} votes for ${val}`}
+                                           />
+                                       ))}
+                                   </div>
+                                   <div className="flex justify-between mt-1">
+                                        {stats.distribution.map(([val, count]) => (
+                                            <div key={val} className="text-[10px] text-slate-500 text-center">
+                                                <span className="font-bold text-slate-300">{val}</span> <span className="opacity-50">({count})</span>
+                                            </div>
+                                        ))}
+                                   </div>
                                </div>
                            </div>
-                       )}
-                   </div>
+
+                           {/* SM Controls for Finishing */}
+                           {isScrumMaster && (
+                               <div className="mt-4 sm:mt-6 pt-4 border-t border-slate-700 flex flex-col sm:flex-row items-center justify-end gap-4">
+                                   <div className="flex items-center gap-2">
+                                       <span className="text-sm text-slate-300">Final:</span>
+                                       <div className="flex bg-slate-900 rounded-lg p-1 border border-slate-700 overflow-x-auto max-w-[200px] sm:max-w-none scrollbar-hide">
+                                           {POINTING_SCALE.filter(p => typeof p === 'number' || p === '0' || p === '?').map(p => (
+                                               <button
+                                                 key={p}
+                                                 onClick={() => setManualFinalScore(p)}
+                                                 className={`px-2 sm:px-3 py-1 rounded text-xs sm:text-sm font-bold transition-colors ${
+                                                     (manualFinalScore || stats.mode) == p 
+                                                     ? 'bg-indigo-600 text-white' 
+                                                     : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                                                 }`}
+                                               >
+                                                   {p}
+                                               </button>
+                                           ))}
+                                       </div>
+                                   </div>
+                                   <div className="flex gap-2 w-full sm:w-auto">
+                                       <Button size="sm" variant="secondary" onClick={onReset} className="flex-1 sm:flex-none">Re-Vote</Button>
+                                       <Button size="sm" onClick={handleFinish} className="flex-1 sm:flex-none">Complete</Button>
+                                   </div>
+                               </div>
+                           )}
+                       </div>
+                   )
                ) : (
                    /* Voting In Progress State */
                    <div className="text-center">

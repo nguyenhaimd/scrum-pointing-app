@@ -2,6 +2,7 @@
 // A simple Web Audio API synthesizer to avoid external dependencies and loading times.
 
 let audioCtx: AudioContext | null = null;
+let isMuted = false;
 
 const getContext = () => {
     if (!audioCtx) {
@@ -11,6 +12,7 @@ const getContext = () => {
 };
 
 const playTone = (freq: number, type: OscillatorType, duration: number, startTime: number = 0, vol: number = 0.1) => {
+    if (isMuted) return;
     const ctx = getContext();
     if (ctx.state === 'suspended') ctx.resume();
 
@@ -30,19 +32,21 @@ const playTone = (freq: number, type: OscillatorType, duration: number, startTim
     osc.stop(ctx.currentTime + startTime + duration);
 };
 
+export const setMuted = (muted: boolean) => {
+    isMuted = muted;
+};
+
 export const playSound = {
     vote: () => {
-        // Short high "pop"
         playTone(600, 'sine', 0.1, 0, 0.05);
     },
     
     reveal: () => {
-        // Ascending Major Triad (C - E - G)
         playTone(523.25, 'triangle', 0.3, 0, 0.1); // C5
         playTone(659.25, 'triangle', 0.3, 0.1, 0.1); // E5
         playTone(783.99, 'triangle', 0.6, 0.2, 0.1); // G5
         // Haptic feedback
-        if (navigator.vibrate) navigator.vibrate(200);
+        if (!isMuted && navigator.vibrate) navigator.vibrate(200);
     },
 
     timerTick: () => {
@@ -55,6 +59,7 @@ export const playSound = {
     },
 
     reaction: () => {
+        if (isMuted) return;
         // Bubbly sound
         const ctx = getContext();
         if (ctx.state === 'suspended') ctx.resume();
