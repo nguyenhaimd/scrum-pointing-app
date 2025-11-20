@@ -81,19 +81,54 @@ export const playSound = {
 
     wow: () => {
         if (isMuted) return;
+
+        const playFallback = () => {
+            // Fallback to a "wow-like" synth sound (slide up/down)
+            try {
+                const ctx = getContext();
+                if (ctx.state === 'suspended') ctx.resume();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'triangle';
+                
+                // Pitch slide up
+                osc.frequency.setValueAtTime(200, ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(400, ctx.currentTime + 0.2);
+                osc.frequency.exponentialRampToValueAtTime(300, ctx.currentTime + 0.4);
+
+                gain.gain.setValueAtTime(0.2, ctx.currentTime);
+                gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.4);
+                
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start();
+                osc.stop(ctx.currentTime + 0.4);
+            } catch (e) {
+                console.error("Fallback sound failed", e);
+            }
+        };
+
         try {
-            // Specific Owen Wilson Wow
-            const audio = new Audio('https://www.myinstants.com/media/sounds/owen-wilson-wow.mp3');
-            audio.volume = 0.6; 
+            // Reliable Cloudinary URL
+            const audio = new Audio('https://res.cloudinary.com/dzs8t49si/video/upload/v1657662652/owen_wilson_wow_inc1.mp3');
+            audio.volume = 1.0; 
+            
+            audio.onerror = () => {
+                console.warn("Wow audio failed to load, playing fallback.");
+                playFallback();
+            };
+
             const playPromise = audio.play();
             
             if (playPromise !== undefined) {
                 playPromise.catch(error => {
                     console.warn("Wow sound playback failed:", error);
+                    playFallback();
                 });
             }
         } catch (e) {
             console.warn("Wow audio construction failed", e);
+            playFallback();
         }
     },
 
