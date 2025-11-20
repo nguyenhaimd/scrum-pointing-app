@@ -21,7 +21,7 @@ export const AVATARS = [
   '🦃', '🦚', '🦜', '🦢', '🦩', '🕊️', '🐇', '🦝'
 ];
 
-export const REACTION_EMOJIS = ['👍', '👎', '🔥', '🚀', '😂', '🤔', '☕', '🎉'];
+export const REACTION_EMOJIS = ['👍', '👎', '🔥', '🚀', '😂', '🤔', '☕', '🎉', '👱'];
 
 export const STORAGE_KEY = 'gemini-scrum-poker-state';
 export const USER_STORAGE_KEY = 'gemini-scrum-poker-user';

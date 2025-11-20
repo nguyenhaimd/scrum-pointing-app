@@ -119,7 +119,11 @@ const PokerTable: React.FC<PokerTableProps> = ({
                    key={emoji}
                    onClick={() => {
                        onReaction(emoji);
-                       playSound.reaction();
+                       if (emoji === '👱') {
+                           playSound.wow();
+                       } else {
+                           playSound.reaction();
+                       }
                    }}
                    className="w-8 h-8 flex items-center justify-center text-lg hover:bg-slate-700 rounded-full transition-transform hover:scale-110 active:scale-90"
                  >

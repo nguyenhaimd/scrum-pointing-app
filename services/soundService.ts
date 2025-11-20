@@ -1,4 +1,5 @@
 
+
 // A simple Web Audio API synthesizer to avoid external dependencies and loading times.
 
 let audioCtx: AudioContext | null = null;
@@ -76,6 +77,18 @@ export const playSound = {
         gain.connect(ctx.destination);
         osc.start();
         osc.stop(ctx.currentTime + 0.2);
+    },
+
+    wow: () => {
+        if (isMuted) return;
+        try {
+            // Using a reliable Internet Archive link for the "Wow" sound effect
+            const audio = new Audio('https://ia903403.us.archive.org/22/items/owen-wilson-wow/owen-wilson-wow.mp3');
+            audio.volume = 0.6;
+            audio.play().catch(e => console.warn("Could not play wow sound", e));
+        } catch (e) {
+            console.warn("Audio playback failed", e);
+        }
     },
 
     join: () => {
