@@ -1,5 +1,5 @@
 
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 // @ts-ignore
 import confetti from 'canvas-confetti';
 import { User, Story, UserRole, TimerState, Reaction } from '../types';
@@ -27,17 +27,6 @@ interface PokerTableProps {
   onReaction: (emoji: string) => void;
 }
 
-// Helper for Device Icons
-const DeviceIcon: React.FC<{ type: 'mobile' | 'tablet' | 'desktop' }> = ({ type }) => {
-    if (type === 'mobile') {
-        return <svg className="w-3 h-3 md:w-4 md:h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>;
-    }
-    if (type === 'tablet') {
-        return <svg className="w-3 h-3 md:w-4 md:h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 18h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>;
-    }
-    return <svg className="w-3 h-3 md:w-4 md:h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>;
-};
-
 const PokerTable: React.FC<PokerTableProps> = ({
   users,
   currentStory,
@@ -55,10 +44,11 @@ const PokerTable: React.FC<PokerTableProps> = ({
   onReaction
 }) => {
   const [manualFinalScore, setManualFinalScore] = useState<string | number | null>(null);
+  const prevRevealed = useRef(areVotesRevealed);
   
-  // Trigger confetti when votes revealed and consensus reached (simple logic)
+  // Trigger confetti and sound when votes revealed
   useEffect(() => {
-    if (areVotesRevealed) {
+    if (areVotesRevealed && !prevRevealed.current) {
         playSound.reveal();
         // Check for perfect consensus
         if (currentStory && currentStory.votes) {
@@ -73,6 +63,7 @@ const PokerTable: React.FC<PokerTableProps> = ({
             }
         }
     }
+    prevRevealed.current = areVotesRevealed;
   }, [areVotesRevealed, currentStory]);
 
   // Stats Calculation
@@ -108,7 +99,7 @@ const PokerTable: React.FC<PokerTableProps> = ({
        <ReactionOverlay lastReaction={lastReaction} />
        
        {/* Top Bar: Timer & Controls */}
-       <div className="flex flex-col sm:flex-row justify-between items-center p-2 sm:p-4 z-10 gap-3 sm:gap-0">
+       <div className="flex flex-col sm:flex-row justify-between items-center p-2 sm:p-4 z-10 gap-3 sm:gap-0 shrink-0">
           <div className="flex gap-2 scale-90 sm:scale-100 origin-left">
              <Timer 
                 timer={timer} 
@@ -137,8 +128,20 @@ const PokerTable: React.FC<PokerTableProps> = ({
        </div>
 
        {/* Main Table Area */}
-       <div className="flex-1 flex flex-col items-center justify-start pt-2 sm:pt-4 pb-24 sm:pb-20 px-2 sm:px-4 gap-4 sm:gap-8">
+       <div className="flex-1 flex flex-col items-center justify-start pt-2 sm:pt-4 pb-24 sm:pb-20 px-2 sm:px-4 gap-4 sm:gap-6">
            
+           {/* Active Story Details (Integrated into flow) */}
+           {currentStory && (
+               <div className="w-full max-w-2xl bg-slate-800/40 border border-slate-700/50 rounded-xl p-3 sm:p-4 text-center animate-fade-in">
+                   <h3 className="text-lg sm:text-xl font-bold text-white leading-tight">{currentStory.title}</h3>
+                   {currentStory.description && (
+                       <p className="text-xs sm:text-sm text-slate-400 mt-2 max-w-prose mx-auto line-clamp-3">
+                           {currentStory.description}
+                       </p>
+                   )}
+               </div>
+           )}
+
            {/* Center Status / Results */}
            <div className="w-full max-w-2xl min-h-[100px] sm:min-h-[120px] flex flex-col items-center justify-center shrink-0">
                {!currentStory ? (
@@ -212,6 +215,7 @@ const PokerTable: React.FC<PokerTableProps> = ({
                ) : (
                    /* Voting In Progress State */
                    <div className="text-center">
+                       {/* Status Icon */}
                        <div className="w-20 h-20 sm:w-24 sm:h-24 bg-slate-800 rounded-full flex items-center justify-center border-4 border-slate-700 mb-4 mx-auto shadow-[0_0_30px_rgba(99,102,241,0.1)]">
                            <span className="text-2xl sm:text-3xl">🃏</span>
                        </div>
@@ -240,28 +244,37 @@ const PokerTable: React.FC<PokerTableProps> = ({
                    const vote = currentStory?.votes?.[user.id];
                    const hasVoted = vote !== undefined && vote !== null;
                    
+                   // Only Developers should have a "Thinking" placeholder. 
+                   // Others just show their presence unless they explicitly voted.
+                   const isVoter = user.role === UserRole.DEVELOPER;
+                   const showCardSlot = isVoter || hasVoted;
+
                    return (
                        <div key={user.id} className="relative group flex flex-col items-center w-full sm:w-auto">
-                           {/* The Card */}
+                           {/* The Card / Placeholder */}
                            <div className={`
-                               relative transition-all duration-300
+                               relative transition-all duration-300 min-h-[80px] sm:min-h-[96px] flex items-center justify-center
                                ${hasVoted && !areVotesRevealed ? '-translate-y-2' : ''}
                            `}>
-                               {hasVoted ? (
-                                   <Card 
-                                     value={areVotesRevealed ? vote : ''} 
-                                     faceDown={!areVotesRevealed} 
-                                     revealed={areVotesRevealed}
-                                     size="md"
-                                   />
+                               {showCardSlot ? (
+                                    hasVoted ? (
+                                        <Card 
+                                        value={areVotesRevealed ? vote : ''} 
+                                        faceDown={!areVotesRevealed} 
+                                        revealed={areVotesRevealed}
+                                        size="md"
+                                        />
+                                    ) : (
+                                        // Empty Slot for Developers
+                                        <div className="w-14 h-20 md:w-16 md:h-24 rounded-xl border-2 border-dashed border-slate-700 bg-slate-800/30 flex items-center justify-center">
+                                            <span className="text-xs text-slate-600">Thinking</span>
+                                        </div>
+                                    )
                                ) : (
-                                   // Empty Slot
-                                   <div className="w-14 h-20 md:w-16 md:h-24 rounded-xl border-2 border-dashed border-slate-700 bg-slate-800/30 flex items-center justify-center">
-                                       {user.role === UserRole.OBSERVER ? (
-                                           <span className="text-xl opacity-30">👁️</span>
-                                       ) : (
-                                           <span className="text-xs text-slate-600">Thinking</span>
-                                       )}
+                                   // Non-voter visual (Just an icon/placeholder)
+                                   <div className="w-14 h-20 md:w-16 md:h-24 flex items-center justify-center opacity-40 text-4xl sm:text-5xl" title={user.role}>
+                                       {user.role === UserRole.SCRUM_MASTER ? '👨‍🍳' : 
+                                        user.role === UserRole.PRODUCT_OWNER ? '👑' : '👁️'}
                                    </div>
                                )}
                            </div>

@@ -176,6 +176,8 @@ const App: React.FC = () => {
                 onNext={(finalPoints) => {
                     if(!currentStory) return;
                     dispatch({ type: 'FINISH_STORY', payload: { storyId: currentStory.id, points: finalPoints } });
+                    // Also clear the current story so the consensus screen disappears and we go back to waiting state
+                    dispatch({ type: 'SET_CURRENT_STORY', payload: null });
                 }}
                 onNextStory={() => {
                     const nextStory = state.stories.find(s => s.status === 'pending' && s.id !== currentStory?.id);
@@ -187,19 +189,6 @@ const App: React.FC = () => {
                 }}
             />
 
-            {/* Current Story Detail Overlay (when active) */}
-            {currentStory && (
-                <div className="absolute top-4 left-4 right-4 md:left-10 md:right-10 bg-slate-800/90 backdrop-blur rounded-xl p-3 md:p-4 border border-slate-700 shadow-lg z-20 max-h-32 overflow-y-auto mt-12 md:mt-0">
-                    <h3 className="font-bold text-base md:text-lg text-white sticky top-0">{currentStory.title}</h3>
-                    <p className="text-slate-300 text-xs md:text-sm mt-1">{currentStory.description || 'No description provided.'}</p>
-                    {currentStory.acceptanceCriteria?.length > 0 && (
-                        <ul className="mt-2 list-disc list-inside text-[10px] md:text-xs text-slate-400">
-                            {currentStory.acceptanceCriteria.map((ac, i) => <li key={i}>{ac}</li>)}
-                        </ul>
-                    )}
-                </div>
-            )}
-            
             {/* Voting Hand (Disabled if story is completed) */}
             {currentStory?.status !== 'completed' && (
                 <VotingControls 
