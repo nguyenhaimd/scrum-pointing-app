@@ -7,7 +7,7 @@ import Card from './Card';
 import Button from './Button';
 import Timer from './Timer';
 import ReactionOverlay from './ReactionOverlay';
-import { POINTING_SCALE, REACTION_EMOJIS } from '../constants';
+import { POINTING_SCALE, REACTION_EMOJIS, WOW_EMOJI } from '../constants';
 import { playSound } from '../services/soundService';
 
 interface PokerTableProps {
@@ -119,7 +119,7 @@ const PokerTable: React.FC<PokerTableProps> = ({
                    key={emoji}
                    onClick={() => {
                        onReaction(emoji);
-                       if (emoji === '👱') {
+                       if (emoji === WOW_EMOJI) {
                            playSound.wow();
                        } else {
                            playSound.reaction();
