@@ -170,11 +170,13 @@ const App: React.FC = () => {
         `}>
             <StoryPanel 
                 stories={state.stories}
+                users={allUsers}
                 currentStoryId={state.currentStoryId}
                 userRole={currentUser.role}
                 onAddStory={(story) => dispatch({ type: 'ADD_STORY', payload: story })}
                 onDeleteStory={(id) => dispatch({ type: 'DELETE_STORY', payload: id })}
                 onClearQueue={() => dispatch({ type: 'END_SESSION' })}
+                onRemoveUser={(id) => dispatch({ type: 'REMOVE_USER', payload: id })}
                 onSelectStory={(id) => {
                     dispatch({ type: 'SET_CURRENT_STORY', payload: id });
                     setMobileView('table'); // Switch to table on mobile after selection

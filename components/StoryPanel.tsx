@@ -1,16 +1,19 @@
 
 import React, { useState } from 'react';
-import { Story, UserRole } from '../types';
+import { Story, UserRole, User } from '../types';
 import Button from './Button';
+import { STALE_USER_TIMEOUT } from '../constants';
 
 interface StoryPanelProps {
   stories: Story[];
+  users: User[];
   currentStoryId: string | null;
   userRole: UserRole;
   onAddStory: (story: Story) => void;
   onSelectStory: (id: string) => void;
   onDeleteStory?: (id: string) => void;
   onClearQueue?: () => void; // Now serves as "End Session" trigger
+  onRemoveUser?: (userId: string) => void;
 }
 
 // Helper component for status icons
@@ -44,12 +47,14 @@ const StatusIcon = ({ status }: { status: Story['status'] }) => {
 
 const StoryPanel: React.FC<StoryPanelProps> = ({
   stories,
+  users,
   currentStoryId,
   userRole,
   onAddStory,
   onSelectStory,
   onDeleteStory,
-  onClearQueue
+  onClearQueue,
+  onRemoveUser
 }) => {
   const [newTitle, setNewTitle] = useState('');
   const [newDescription, setNewDescription] = useState('');
@@ -83,6 +88,20 @@ const StoryPanel: React.FC<StoryPanelProps> = ({
   const confirmEndSession = () => {
     setShowEndSessionModal(false);
     onClearQueue?.();
+  };
+
+  const handleRemoveStaleUsers = () => {
+    const now = Date.now();
+    let count = 0;
+    users.forEach(user => {
+        if (now - user.lastHeartbeat > STALE_USER_TIMEOUT) {
+            onRemoveUser?.(user.id);
+            count++;
+        }
+    });
+    if (count > 0) {
+        console.log(`Removed ${count} stale users.`);
+    }
   };
 
   return (
@@ -207,6 +226,16 @@ const StoryPanel: React.FC<StoryPanelProps> = ({
             </Button>
 
             <div className="border-t border-slate-700 my-1"></div>
+            
+            <Button
+                size="sm"
+                variant="secondary"
+                className="w-full mb-2 text-slate-400 border-slate-600 hover:text-white hover:border-slate-400 bg-slate-800"
+                onClick={handleRemoveStaleUsers}
+            >
+                Remove Stale Users
+            </Button>
+
             <Button 
                 size="sm" 
                 variant="danger" 
