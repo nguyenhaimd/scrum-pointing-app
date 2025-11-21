@@ -269,8 +269,8 @@ const PokerTable: React.FC<PokerTableProps> = ({
                )}
            </div>
 
-           {/* Players Grid - Using Grid on mobile for stability, Flex on desktop */}
-           <div className="grid grid-cols-2 sm:flex sm:flex-wrap justify-center justify-items-center gap-x-4 gap-y-6 sm:gap-6 w-full max-w-5xl">
+           {/* Players Grid - 3 cols on mobile for better density */}
+           <div className="grid grid-cols-3 sm:flex sm:flex-wrap justify-center justify-items-center gap-x-2 gap-y-4 sm:gap-6 w-full max-w-5xl">
                {users.map(user => {
                    const vote = currentStory?.votes?.[user.id];
                    const hasVoted = vote !== undefined && vote !== null;
@@ -322,7 +322,7 @@ const PokerTable: React.FC<PokerTableProps> = ({
                            {/* User Info */}
                            <div className="mt-2 sm:mt-3 flex flex-col items-center max-w-full w-full px-1">
                                <div className={`
-                                   flex items-center justify-center gap-1.5 bg-slate-800/80 backdrop-blur px-2 py-1 rounded-full border shadow-sm w-full max-w-[110px] transition-colors duration-300
+                                   flex items-center justify-center gap-1.5 bg-slate-800/80 backdrop-blur px-2 py-1 rounded-full border shadow-sm w-full transition-colors duration-300
                                    ${hasVoted ? 'border-emerald-500/50 bg-emerald-900/20' : 'border-slate-700'}
                                `}>
                                    <span className="text-xs sm:text-sm shrink-0">{user.avatar}</span>

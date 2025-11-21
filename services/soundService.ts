@@ -140,5 +140,10 @@ export const playSound = {
     join: () => {
         playTone(400, 'sine', 0.2, 0, 0.1);
         playTone(600, 'sine', 0.2, 0.1, 0.1);
+    },
+
+    leave: () => {
+        playTone(600, 'sine', 0.2, 0, 0.1);
+        playTone(400, 'sine', 0.2, 0.1, 0.1);
     }
 };

@@ -8,16 +8,23 @@ import ChatPanel from './components/ChatPanel';
 import { useAppStore } from './services/store';
 import { User } from './types';
 import { USER_STORAGE_KEY, SOUND_PREF_KEY, STALE_USER_TIMEOUT } from './constants';
-import { setMuted } from './services/soundService';
+import { setMuted, playSound } from './services/soundService';
 
 type MobileView = 'stories' | 'table' | 'chat';
+
+interface Toast {
+    id: string;
+    message: string;
+    type?: 'info' | 'error' | 'success';
+    persistent?: boolean;
+}
 
 const App: React.FC = () => {
   // Local User State
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [mobileView, setMobileView] = useState<MobileView>('table');
   const [isSoundMuted, setIsSoundMuted] = useState(false);
-  const [toasts, setToasts] = useState<{id: string, message: string}[]>([]);
+  const [toasts, setToasts] = useState<Toast[]>([]);
   const [now, setNow] = useState(Date.now());
 
   // Try to restore session on mount from localStorage (persists across close/reopen)
@@ -82,7 +89,8 @@ const App: React.FC = () => {
       prev.forEach(u => {
           if (!curr.find(c => c.id === u.id)) {
               if (u.id !== currentUser?.id) { // Don't notify self
-                  addToast(`${u.name} disconnected`);
+                  addToast(`${u.name} disconnected`, 'error', true);
+                  playSound.leave();
               }
           }
       });
@@ -91,7 +99,8 @@ const App: React.FC = () => {
       curr.forEach(u => {
            if (!prev.find(p => p.id === u.id)) {
               if (u.id !== currentUser?.id) {
-                 addToast(`${u.name} joined`);
+                 addToast(`${u.name} joined`, 'info');
+                 playSound.join();
               }
            }
       });
@@ -99,12 +108,19 @@ const App: React.FC = () => {
       prevVisibleUsersRef.current = curr;
   }, [visibleUsers, currentUser]); // Re-run whenever the visible list changes
 
-  const addToast = (message: string) => {
+  const addToast = (message: string, type: Toast['type'] = 'info', persistent = false) => {
       const id = crypto.randomUUID();
-      setToasts(prev => [...prev, { id, message }]);
-      setTimeout(() => {
-          setToasts(prev => prev.filter(t => t.id !== id));
-      }, 4000);
+      setToasts(prev => [...prev, { id, message, type, persistent }]);
+      
+      if (!persistent) {
+          setTimeout(() => {
+              removeToast(id);
+          }, 4000);
+      }
+  };
+
+  const removeToast = (id: string) => {
+      setToasts(prev => prev.filter(t => t.id !== id));
   };
 
   // Actions
@@ -135,11 +151,31 @@ const App: React.FC = () => {
     <div className="flex flex-col h-screen bg-slate-900 text-white overflow-hidden relative">
       
       {/* Toast Container */}
-      <div className="fixed top-20 right-4 z-[80] flex flex-col gap-2 pointer-events-none">
+      <div className="fixed top-20 right-4 z-[80] flex flex-col gap-2 pointer-events-auto">
           {toasts.map(t => (
-              <div key={t.id} className="bg-slate-800/90 border border-indigo-500/50 text-white px-4 py-3 rounded-lg shadow-xl backdrop-blur-md animate-fade-in flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-indigo-500"></span>
-                  {t.message}
+              <div 
+                key={t.id} 
+                className={`
+                    px-4 py-3 rounded-lg shadow-xl backdrop-blur-md animate-fade-in flex items-center gap-3 border
+                    ${t.type === 'error' 
+                        ? 'bg-red-900/90 border-red-500/50 text-white' 
+                        : 'bg-slate-800/90 border-indigo-500/50 text-white'
+                    }
+                `}
+              >
+                  <span className={`w-2 h-2 rounded-full shrink-0 ${t.type === 'error' ? 'bg-red-500' : 'bg-indigo-500'}`}></span>
+                  <span className="text-sm font-medium">{t.message}</span>
+                  
+                  {t.persistent && (
+                      <button 
+                        onClick={() => removeToast(t.id)}
+                        className="ml-2 p-1 hover:bg-white/10 rounded text-white/70 hover:text-white transition-colors"
+                      >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+                          </svg>
+                      </button>
+                  )}
               </div>
           ))}
       </div>
