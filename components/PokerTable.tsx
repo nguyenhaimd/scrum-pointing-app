@@ -101,8 +101,6 @@ const PokerTable: React.FC<PokerTableProps> = ({
 
   const handleFinish = () => {
       // If manual score is set, use it. Otherwise try to parse the mode.
-      // If mode is "3 & 5", we can't default to it easily, so default to '0' or force manual selection if ambiguous?
-      // For simplicity, if mode is a single value, use it, otherwise default '0'.
       const defaultScore = stats?.mode && !stats.mode.includes('&') ? stats.mode : '0';
       const final = manualFinalScore || defaultScore;
       onNext(final);
@@ -111,12 +109,6 @@ const PokerTable: React.FC<PokerTableProps> = ({
   
   const isScrumMaster = currentUserRole === UserRole.SCRUM_MASTER;
   const isCoffeeTime = areVotesRevealed && stats?.mode === '☕';
-
-  // Sort users: Online first, then by name
-  const sortedUsers = [...users].sort((a, b) => {
-      if (a.isOnline === b.isOnline) return a.name.localeCompare(b.name);
-      return a.isOnline ? -1 : 1;
-  });
 
   return (
     <div className="flex flex-col h-full bg-slate-900 relative overflow-y-auto overflow-x-hidden">
@@ -279,10 +271,9 @@ const PokerTable: React.FC<PokerTableProps> = ({
 
            {/* Players Grid - Using Grid on mobile for stability, Flex on desktop */}
            <div className="grid grid-cols-2 sm:flex sm:flex-wrap justify-center justify-items-center gap-x-4 gap-y-6 sm:gap-6 w-full max-w-5xl">
-               {sortedUsers.map(user => {
+               {users.map(user => {
                    const vote = currentStory?.votes?.[user.id];
                    const hasVoted = vote !== undefined && vote !== null;
-                   const isOffline = !user.isOnline;
                    
                    // Only Developers should have a "Thinking" placeholder. 
                    // Others just show their presence unless they explicitly voted.
@@ -290,15 +281,8 @@ const PokerTable: React.FC<PokerTableProps> = ({
                    const showCardSlot = isVoter || hasVoted;
 
                    return (
-                       <div key={user.id} className={`relative group flex flex-col items-center w-full sm:w-auto ${isOffline ? 'opacity-50 grayscale' : ''}`}>
+                       <div key={user.id} className="relative group flex flex-col items-center w-full sm:w-auto">
                            
-                           {/* Disconnected Badge */}
-                           {isOffline && (
-                               <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-slate-900/90 border border-slate-600 text-slate-300 text-[10px] font-bold px-2 py-1 rounded shadow-xl z-20 whitespace-nowrap pointer-events-none">
-                                   DISCONNECTED
-                               </div>
-                           )}
-
                            {/* The Card / Placeholder */}
                            <div className={`
                                relative transition-all duration-300 min-h-[80px] sm:min-h-[96px] flex items-center justify-center

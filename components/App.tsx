@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState, useRef, useMemo } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import Login from './components/Login';
 import PokerTable from './components/PokerTable';
 import VotingControls from './components/VotingControls';
@@ -56,48 +56,30 @@ const App: React.FC = () => {
   
   // Derived State
   const currentStory = state.stories.find(s => s.id === state.currentStoryId) || null;
-  
+  const allUsers = Object.values(state.users) as User[];
+
   // Filter only online and non-stale users for display
-  const visibleUsers = useMemo(() => {
-    return (Object.values(state.users) as User[])
-      .filter(u => u.isOnline && (now - u.lastHeartbeat < STALE_USER_TIMEOUT))
-      .sort((a, b) => a.name.localeCompare(b.name));
-  }, [state.users, now]);
+  const visibleUsers = allUsers.filter(u => 
+      u.isOnline && (now - u.lastHeartbeat < STALE_USER_TIMEOUT)
+  );
 
-  const prevVisibleUsersRef = useRef<User[]>([]);
+  const prevUsersRef = useRef<Record<string, User>>({});
 
-  // Notification logic for joins/leaves
+  // Notification logic for disconnections
   useEffect(() => {
-      const curr = visibleUsers;
-      const prev = prevVisibleUsersRef.current;
-
-      // If this is the first time we see users (and we found some), just update ref and skip notifications
-      // This avoids spamming "Joined" for existing users when we first load the page
-      if (prev.length === 0 && curr.length > 0) {
-          prevVisibleUsersRef.current = curr;
-          return;
-      }
-
-      // Check for left users
-      prev.forEach(u => {
-          if (!curr.find(c => c.id === u.id)) {
-              if (u.id !== currentUser?.id) { // Don't notify self
-                  addToast(`${u.name} disconnected`);
-              }
+      const prev = prevUsersRef.current;
+      const curr = state.users;
+      
+      (Object.values(prev) as User[]).forEach(u => {
+          const currUser = curr[u.id];
+          // If user was online and is now offline/gone
+          if (u.isOnline && (!currUser || !currUser.isOnline)) {
+              addToast(`${u.name} disconnected`);
           }
       });
-      
-      // Check for joined users (Optional but good UX)
-      curr.forEach(u => {
-           if (!prev.find(p => p.id === u.id)) {
-              if (u.id !== currentUser?.id) {
-                 addToast(`${u.name} joined`);
-              }
-           }
-      });
 
-      prevVisibleUsersRef.current = curr;
-  }, [visibleUsers, currentUser]); // Re-run whenever the visible list changes
+      prevUsersRef.current = curr;
+  }, [state.users]);
 
   const addToast = (message: string) => {
       const id = crypto.randomUUID();
@@ -137,8 +119,8 @@ const App: React.FC = () => {
       {/* Toast Container */}
       <div className="fixed top-20 right-4 z-[80] flex flex-col gap-2 pointer-events-none">
           {toasts.map(t => (
-              <div key={t.id} className="bg-slate-800/90 border border-indigo-500/50 text-white px-4 py-3 rounded-lg shadow-xl backdrop-blur-md animate-fade-in flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-indigo-500"></span>
+              <div key={t.id} className="bg-slate-800/90 border border-red-500/50 text-white px-4 py-3 rounded-lg shadow-xl backdrop-blur-md animate-fade-in flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-red-500"></span>
                   {t.message}
               </div>
           ))}
