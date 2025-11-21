@@ -90,7 +90,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       }
   };
 
-  // Sort users: Online first, then by name. Defensive coding for missing names.
+  // Sort users: Online first, then by name.
   const sortedUsers = [...users].sort((a, b) => {
     const nameA = String(a.name || 'Unknown');
     const nameB = String(b.name || 'Unknown');
@@ -135,6 +135,16 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
             className="flex-1 overflow-y-auto p-4 space-y-3 scrollbar-hide"
           >
             {messages.map(msg => {
+              if (msg.isSystem) {
+                  return (
+                    <div key={msg.id} className="flex justify-center my-2 opacity-75 animate-fade-in">
+                      <span className="text-[10px] uppercase tracking-wide text-slate-400 font-bold bg-slate-700/30 px-3 py-0.5 rounded-full border border-slate-700/50 shadow-sm">
+                        {msg.text}
+                      </span>
+                    </div>
+                  );
+              }
+
               const isMe = msg.userId === currentUser.id;
               return (
                 <div key={msg.id} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>

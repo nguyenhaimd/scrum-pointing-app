@@ -1,4 +1,3 @@
-
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 // @ts-ignore
 import confetti from 'canvas-confetti';
@@ -7,6 +6,7 @@ import Card from './Card';
 import Button from './Button';
 import Timer from './Timer';
 import ReactionOverlay from './ReactionOverlay';
+import TicTacToe from './TicTacToe';
 import { POINTING_SCALE, REACTION_EMOJIS, WOW_EMOJI } from '../constants';
 import { playSound } from '../services/soundService';
 
@@ -44,6 +44,7 @@ const PokerTable: React.FC<PokerTableProps> = ({
   onReaction
 }) => {
   const [manualFinalScore, setManualFinalScore] = useState<string | number | null>(null);
+  const [showGame, setShowGame] = useState(false);
   const prevRevealed = useRef(areVotesRevealed);
   
   // Trigger confetti and sound when votes revealed
@@ -124,6 +125,13 @@ const PokerTable: React.FC<PokerTableProps> = ({
                 onReset={onResetTimer}
                 canControl={isScrumMaster}
              />
+             <button
+               onClick={() => setShowGame(true)}
+               className="p-2 bg-slate-800/50 hover:bg-slate-700 border border-slate-700 rounded-full text-slate-300 hover:text-indigo-400 transition-colors"
+               title="Play Tic-Tac-Toe"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z"></path></svg>
+             </button>
           </div>
           
           {/* Reaction Bar */}
@@ -338,6 +346,9 @@ const PokerTable: React.FC<PokerTableProps> = ({
                })}
            </div>
        </div>
+       
+       {/* Mini Game Modal */}
+       {showGame && <TicTacToe onClose={() => setShowGame(false)} />}
     </div>
   );
 };

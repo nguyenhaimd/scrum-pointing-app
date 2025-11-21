@@ -48,7 +48,7 @@ const Login: React.FC<LoginProps> = ({ onJoin }) => {
           <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-cyan-400">
             HighWind's Scrum Poker
           </h1>
-          <p className="text-slate-400 mt-2">Real-time estimation with AI powers</p>
+          <p className="text-slate-400 mt-2">What.Do.YOU.WANT?</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">

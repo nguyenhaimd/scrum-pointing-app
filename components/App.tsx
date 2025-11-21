@@ -1,23 +1,30 @@
-
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import Login from './components/Login';
 import PokerTable from './components/PokerTable';
 import VotingControls from './components/VotingControls';
 import StoryPanel from './components/StoryPanel';
 import ChatPanel from './components/ChatPanel';
 import { useAppStore } from './services/store';
-import { User } from './types';
+import { User, ChatMessage } from './types';
 import { USER_STORAGE_KEY, SOUND_PREF_KEY, STALE_USER_TIMEOUT } from './constants';
-import { setMuted } from './services/soundService';
+import { setMuted, playSound } from './services/soundService';
 
 type MobileView = 'stories' | 'table' | 'chat';
+
+interface Toast {
+    id: string;
+    message: string;
+    type?: 'info' | 'error' | 'success';
+    persistent?: boolean;
+}
 
 const App: React.FC = () => {
   // Local User State
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [mobileView, setMobileView] = useState<MobileView>('table');
   const [isSoundMuted, setIsSoundMuted] = useState(false);
-  const [toasts, setToasts] = useState<{id: string, message: string}[]>([]);
+  const [toasts, setToasts] = useState<Toast[]>([]);
+  const [localSystemMessages, setLocalSystemMessages] = useState<ChatMessage[]>([]);
   const [now, setNow] = useState(Date.now());
 
   // Try to restore session on mount from localStorage (persists across close/reopen)
@@ -56,37 +63,88 @@ const App: React.FC = () => {
   
   // Derived State
   const currentStory = state.stories.find(s => s.id === state.currentStoryId) || null;
-  const allUsers = Object.values(state.users) as User[];
-
+  
   // Filter only online and non-stale users for display
-  const visibleUsers = allUsers.filter(u => 
-      u.isOnline && (now - u.lastHeartbeat < STALE_USER_TIMEOUT)
-  );
+  const visibleUsers = useMemo(() => {
+    return (Object.values(state.users) as User[])
+      .filter(u => u.isOnline && (now - u.lastHeartbeat < STALE_USER_TIMEOUT))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [state.users, now]);
 
-  const prevUsersRef = useRef<Record<string, User>>({});
+  // Merge server chat messages with local system messages
+  const allMessages = useMemo(() => {
+      return [...state.chatMessages, ...localSystemMessages].sort((a, b) => a.timestamp - b.timestamp);
+  }, [state.chatMessages, localSystemMessages]);
 
-  // Notification logic for disconnections
+  const prevVisibleUsersRef = useRef<User[]>([]);
+
+  // Notification logic for joins/leaves
   useEffect(() => {
-      const prev = prevUsersRef.current;
-      const curr = state.users;
-      
-      (Object.values(prev) as User[]).forEach(u => {
-          const currUser = curr[u.id];
-          // If user was online and is now offline/gone
-          if (u.isOnline && (!currUser || !currUser.isOnline)) {
-              addToast(`${u.name} disconnected`);
+      const curr = visibleUsers;
+      const prev = prevVisibleUsersRef.current;
+
+      // If this is the first time we see users (and we found some), just update ref and skip notifications
+      if (prev.length === 0 && curr.length > 0) {
+          prevVisibleUsersRef.current = curr;
+          return;
+      }
+
+      // Check for left users
+      prev.forEach(u => {
+          if (!curr.find(c => c.id === u.id)) {
+              if (u.id !== currentUser?.id) { 
+                  addToast(`${u.name} disconnected`, 'error'); // Transient
+                  playSound.leave();
+                  
+                  // Add to chat log
+                  setLocalSystemMessages(prevMsgs => [...prevMsgs, {
+                      id: `sys-leave-${Date.now()}-${u.id}`,
+                      userId: 'system',
+                      userName: 'System',
+                      text: `${u.name} left the session`,
+                      timestamp: Date.now(),
+                      isSystem: true
+                  }]);
+              }
           }
       });
+      
+      // Check for joined users
+      curr.forEach(u => {
+           if (!prev.find(p => p.id === u.id)) {
+              if (u.id !== currentUser?.id) {
+                 addToast(`${u.name} joined`, 'success');
+                 playSound.join();
 
-      prevUsersRef.current = curr;
-  }, [state.users]);
+                 // Add to chat log
+                 setLocalSystemMessages(prevMsgs => [...prevMsgs, {
+                    id: `sys-join-${Date.now()}-${u.id}`,
+                    userId: 'system',
+                    userName: 'System',
+                    text: `${u.name} joined the session`,
+                    timestamp: Date.now(),
+                    isSystem: true
+                }]);
+              }
+           }
+      });
 
-  const addToast = (message: string) => {
+      prevVisibleUsersRef.current = curr;
+  }, [visibleUsers, currentUser]); 
+
+  const addToast = (message: string, type: Toast['type'] = 'info', persistent = false) => {
       const id = crypto.randomUUID();
-      setToasts(prev => [...prev, { id, message }]);
-      setTimeout(() => {
-          setToasts(prev => prev.filter(t => t.id !== id));
-      }, 4000);
+      setToasts(prev => [...prev, { id, message, type, persistent }]);
+      
+      if (!persistent) {
+          setTimeout(() => {
+              removeToast(id);
+          }, 3000);
+      }
+  };
+
+  const removeToast = (id: string) => {
+      setToasts(prev => prev.filter(t => t.id !== id));
   };
 
   // Actions
@@ -116,12 +174,32 @@ const App: React.FC = () => {
   return (
     <div className="flex flex-col h-screen bg-slate-900 text-white overflow-hidden relative">
       
-      {/* Toast Container */}
-      <div className="fixed top-20 right-4 z-[80] flex flex-col gap-2 pointer-events-none">
+      {/* Toast Container - Top Center */}
+      <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] flex flex-col gap-2 w-full max-w-sm px-4 pointer-events-auto">
           {toasts.map(t => (
-              <div key={t.id} className="bg-slate-800/90 border border-red-500/50 text-white px-4 py-3 rounded-lg shadow-xl backdrop-blur-md animate-fade-in flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-red-500"></span>
+              <div 
+                key={t.id} 
+                className={`
+                    px-4 py-2.5 rounded-full shadow-2xl backdrop-blur-md animate-fade-in flex items-center justify-center gap-2 border text-sm font-medium
+                    ${t.type === 'error' 
+                        ? 'bg-red-900/90 border-red-500/50 text-red-100' 
+                        : t.type === 'success'
+                            ? 'bg-emerald-900/90 border-emerald-500/50 text-emerald-100'
+                            : 'bg-slate-800/90 border-slate-600 text-slate-200'
+                    }
+                `}
+              >
+                  {t.type === 'error' && <span className="w-2 h-2 rounded-full bg-red-500 shrink-0 animate-pulse"></span>}
+                  {t.type === 'success' && <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>}
                   {t.message}
+                  {t.persistent && (
+                      <button 
+                        onClick={() => removeToast(t.id)}
+                        className="ml-2 p-0.5 hover:bg-white/10 rounded-full"
+                      >
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                      </button>
+                  )}
               </div>
           ))}
       </div>
@@ -283,7 +361,7 @@ const App: React.FC = () => {
             ${mobileView === 'chat' ? 'flex flex-col' : 'hidden'}
         `}>
             <ChatPanel 
-                messages={state.chatMessages}
+                messages={allMessages}
                 currentUser={currentUser}
                 users={visibleUsers}
                 currentStory={currentStory}
