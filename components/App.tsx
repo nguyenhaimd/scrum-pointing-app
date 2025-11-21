@@ -88,7 +88,8 @@ const App: React.FC = () => {
       prev.forEach(u => {
           if (!curr.find(c => c.id === u.id)) {
               if (u.id !== currentUser?.id) { // Don't notify self
-                  addToast(`${u.name} disconnected`, 'error'); 
+                  // Disconnect toast: persistent (closable) but auto-dismisses after 1 minute (60000ms)
+                  addToast(`${u.name} disconnected`, 'error', true, 60000);
                   playSound.leave();
               }
           }
@@ -107,14 +108,16 @@ const App: React.FC = () => {
       prevVisibleUsersRef.current = curr;
   }, [visibleUsers, currentUser]); // Re-run whenever the visible list changes
 
-  const addToast = (message: string, type: Toast['type'] = 'info', persistent = false) => {
+  const addToast = (message: string, type: Toast['type'] = 'info', persistent = false, duration?: number) => {
       const id = crypto.randomUUID();
       setToasts(prev => [...prev, { id, message, type, persistent }]);
       
-      if (!persistent) {
+      const time = duration ?? (persistent ? 0 : 4000);
+      
+      if (time > 0) {
           setTimeout(() => {
               removeToast(id);
-          }, 4000);
+          }, time);
       }
   };
 
