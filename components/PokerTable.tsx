@@ -1,6 +1,4 @@
 
-
-
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 // @ts-ignore
 import confetti from 'canvas-confetti';
@@ -37,7 +35,7 @@ const PokerTable: React.FC<PokerTableProps> = ({
   onNext,
   onNextStory,
   onReset,
-  currentUserRole,
+  currentUserRole: currentUserRole,
   timer,
   onStartTimer,
   onPauseTimer,
@@ -52,15 +50,17 @@ const PokerTable: React.FC<PokerTableProps> = ({
   useEffect(() => {
     if (areVotesRevealed && !prevRevealed.current) {
         playSound.reveal();
-        // Check for perfect consensus
+        // Check for consensus (even if just 1 person voted, if everyone agrees, it's consensus)
         if (currentStory && currentStory.votes) {
             const votes = Object.values(currentStory.votes).filter(v => v !== null);
-            const uniqueVotes = new Set(votes);
-            if (votes.length > 1 && uniqueVotes.size === 1) {
+            // Normalize to string to ensure loose equality (e.g. 5 vs "5")
+            const uniqueVotes = new Set(votes.map(v => String(v)));
+            if (votes.length > 0 && uniqueVotes.size === 1) {
                 confetti({
-                    particleCount: 100,
+                    particleCount: 150,
                     spread: 70,
-                    origin: { y: 0.6 }
+                    origin: { y: 0.6 },
+                    colors: ['#6366f1', '#8b5cf6', '#ec4899']
                 });
             }
         }
@@ -71,26 +71,8 @@ const PokerTable: React.FC<PokerTableProps> = ({
   // Listen for remote reactions to play sound for everyone
   useEffect(() => {
     if (lastReaction) {
-        // If the reaction is VERY recent (prevent replay on reload), play sound
         const isRecent = Date.now() - lastReaction.timestamp < 2000;
-        if (isRecent) {
-            // We only play sound for remote reactions here to avoid double playing for local user
-            // However, the 'lastReaction' prop updates for everyone.
-            // To keep it simple: we can just play it here if we want it triggered by the prop update.
-            // BUT, we already play it on click for the local user for instant feedback.
-            // So we should check if the reaction is NOT from current user?
-            // Actually, simpler UX: Play on click (immediate), ignore prop update for self?
-            // But since we don't have currentUserId here easily without prop drilling or context...
-            // Let's just let the local click handler handle the sound for the sender.
-            // Wait, if we want others to hear it, we NEED to play it here.
-            
-            // Note: In this component structure, we rely on the onClick to trigger sound for the sender
-            // and this Effect could trigger for others.
-            // Since we don't pass currentUserId, let's skip complex logic. 
-            // The standard pattern is: Sender hears it immediately on click.
-            // Receivers hear it when state updates.
-            // For now, the requirement was just "clicking plays sound".
-        }
+        // We perform the sound effect logic here if needed, currently handled by click for sender
     }
   }, [lastReaction]);
 
@@ -100,29 +82,41 @@ const PokerTable: React.FC<PokerTableProps> = ({
       const votes = Object.values(currentStory.votes).filter(v => v !== null);
       if (votes.length === 0) return null;
 
-      // Calculate Average (Only for numbers)
-      const numericVotes = votes.filter(v => typeof v === 'number') as number[];
-      const average = numericVotes.length > 0 
-        ? (numericVotes.reduce((a, b) => a + b, 0) / numericVotes.length).toFixed(1)
-        : '-';
-      
       // Mode (Can be '☕' or '?')
       const counts: Record<string, number> = {};
       votes.forEach(v => counts[String(v)] = (counts[String(v)] || 0) + 1);
+      
       const sortedCounts = Object.entries(counts).sort((a, b) => b[1] - a[1]);
-      const mode = sortedCounts[0] ? sortedCounts[0][0] : null;
+      
+      // Determine consensus mode(s) - handle ties
+      let mode = '-';
+      if (sortedCounts.length > 0) {
+          const maxVotes = sortedCounts[0][1];
+          const winners = sortedCounts.filter(([_, count]) => count === maxVotes).map(([val]) => val);
+          mode = winners.join(' & ');
+      }
 
-      return { average, mode, distribution: sortedCounts, totalVotes: votes.length };
+      return { mode, distribution: sortedCounts, totalVotes: votes.length };
   }, [currentStory?.votes]);
 
   const handleFinish = () => {
-      const final = manualFinalScore || stats?.mode || '0';
+      // If manual score is set, use it. Otherwise try to parse the mode.
+      // If mode is "3 & 5", we can't default to it easily, so default to '0' or force manual selection if ambiguous?
+      // For simplicity, if mode is a single value, use it, otherwise default '0'.
+      const defaultScore = stats?.mode && !stats.mode.includes('&') ? stats.mode : '0';
+      const final = manualFinalScore || defaultScore;
       onNext(final);
       setManualFinalScore(null);
   };
   
   const isScrumMaster = currentUserRole === UserRole.SCRUM_MASTER;
   const isCoffeeTime = areVotesRevealed && stats?.mode === '☕';
+
+  // Sort users: Online first, then by name
+  const sortedUsers = [...users].sort((a, b) => {
+      if (a.isOnline === b.isOnline) return a.name.localeCompare(b.name);
+      return a.isOnline ? -1 : 1;
+  });
 
   return (
     <div className="flex flex-col h-full bg-slate-900 relative overflow-y-auto overflow-x-hidden">
@@ -197,15 +191,11 @@ const PokerTable: React.FC<PokerTableProps> = ({
                        /* Standard Stats View */
                        <div className="w-full bg-slate-800/80 backdrop-blur-md border border-indigo-500/30 rounded-2xl p-4 sm:p-6 shadow-2xl animate-fade-in">
                            <div className="flex flex-col md:flex-row items-center justify-between gap-4 sm:gap-6">
-                               {/* Key Stats */}
-                               <div className="flex gap-6 sm:gap-8">
-                                   <div className="text-center">
-                                       <div className="text-[10px] sm:text-xs text-slate-400 uppercase tracking-wider mb-1">Average</div>
-                                       <div className="text-2xl sm:text-3xl font-bold text-indigo-400">{stats.average}</div>
-                                   </div>
+                               {/* Consensus Only */}
+                               <div className="flex justify-center w-full md:w-auto">
                                    <div className="text-center">
                                        <div className="text-[10px] sm:text-xs text-slate-400 uppercase tracking-wider mb-1">Consensus</div>
-                                       <div className="text-2xl sm:text-3xl font-bold text-white">{stats.mode}</div>
+                                       <div className="text-3xl sm:text-4xl font-bold text-white drop-shadow-lg">{stats.mode}</div>
                                    </div>
                                </div>
 
@@ -243,7 +233,7 @@ const PokerTable: React.FC<PokerTableProps> = ({
                                                  key={p}
                                                  onClick={() => setManualFinalScore(p)}
                                                  className={`px-2 sm:px-3 py-1 rounded text-xs sm:text-sm font-bold transition-colors ${
-                                                     (manualFinalScore || stats.mode) == p 
+                                                     (manualFinalScore || (stats.mode === String(p) ? p : null)) == p 
                                                      ? 'bg-indigo-600 text-white' 
                                                      : 'text-slate-400 hover:text-white hover:bg-slate-800'
                                                  }`}
@@ -289,9 +279,10 @@ const PokerTable: React.FC<PokerTableProps> = ({
 
            {/* Players Grid - Using Grid on mobile for stability, Flex on desktop */}
            <div className="grid grid-cols-2 sm:flex sm:flex-wrap justify-center justify-items-center gap-x-4 gap-y-6 sm:gap-6 w-full max-w-5xl">
-               {users.map(user => {
+               {sortedUsers.map(user => {
                    const vote = currentStory?.votes?.[user.id];
                    const hasVoted = vote !== undefined && vote !== null;
+                   const isOffline = !user.isOnline;
                    
                    // Only Developers should have a "Thinking" placeholder. 
                    // Others just show their presence unless they explicitly voted.
@@ -299,7 +290,15 @@ const PokerTable: React.FC<PokerTableProps> = ({
                    const showCardSlot = isVoter || hasVoted;
 
                    return (
-                       <div key={user.id} className="relative group flex flex-col items-center w-full sm:w-auto">
+                       <div key={user.id} className={`relative group flex flex-col items-center w-full sm:w-auto ${isOffline ? 'opacity-50 grayscale' : ''}`}>
+                           
+                           {/* Disconnected Badge */}
+                           {isOffline && (
+                               <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-slate-900/90 border border-slate-600 text-slate-300 text-[10px] font-bold px-2 py-1 rounded shadow-xl z-20 whitespace-nowrap pointer-events-none">
+                                   DISCONNECTED
+                               </div>
+                           )}
+
                            {/* The Card / Placeholder */}
                            <div className={`
                                relative transition-all duration-300 min-h-[80px] sm:min-h-[96px] flex items-center justify-center
@@ -307,16 +306,24 @@ const PokerTable: React.FC<PokerTableProps> = ({
                            `}>
                                {showCardSlot ? (
                                     hasVoted ? (
-                                        <Card 
-                                        value={areVotesRevealed ? vote : ''} 
-                                        faceDown={!areVotesRevealed} 
-                                        revealed={areVotesRevealed}
-                                        size="md"
-                                        />
+                                        <div className="relative">
+                                            <Card 
+                                                value={areVotesRevealed ? vote : ''} 
+                                                faceDown={!areVotesRevealed} 
+                                                revealed={areVotesRevealed}
+                                                size="md"
+                                            />
+                                            {/* VOTED CHECKMARK BADGE */}
+                                            {!areVotesRevealed && (
+                                                <div className="absolute -top-2 -right-2 bg-emerald-500 text-slate-900 rounded-full p-0.5 border-2 border-slate-900 shadow-lg animate-bounce z-10">
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
+                                                </div>
+                                            )}
+                                        </div>
                                     ) : (
                                         // Empty Slot for Developers
                                         <div className="w-14 h-20 md:w-16 md:h-24 rounded-xl border-2 border-dashed border-slate-700 bg-slate-800/30 flex items-center justify-center">
-                                            <span className="text-xs text-slate-600">Thinking</span>
+                                            <span className="text-xs text-slate-500 animate-pulse">Thinking</span>
                                         </div>
                                     )
                                ) : (
@@ -330,9 +337,12 @@ const PokerTable: React.FC<PokerTableProps> = ({
 
                            {/* User Info */}
                            <div className="mt-2 sm:mt-3 flex flex-col items-center max-w-full w-full px-1">
-                               <div className="flex items-center justify-center gap-1.5 bg-slate-800/80 backdrop-blur px-2 py-1 rounded-full border border-slate-700 shadow-sm w-full max-w-[110px]">
+                               <div className={`
+                                   flex items-center justify-center gap-1.5 bg-slate-800/80 backdrop-blur px-2 py-1 rounded-full border shadow-sm w-full max-w-[110px] transition-colors duration-300
+                                   ${hasVoted ? 'border-emerald-500/50 bg-emerald-900/20' : 'border-slate-700'}
+                               `}>
                                    <span className="text-xs sm:text-sm shrink-0">{user.avatar}</span>
-                                   <span className={`text-[10px] sm:text-xs font-medium truncate ${hasVoted ? 'text-indigo-300' : 'text-slate-400'}`}>
+                                   <span className={`text-[10px] sm:text-xs font-medium truncate ${hasVoted ? 'text-emerald-300' : 'text-slate-400'}`}>
                                        {user.name}
                                    </span>
                                </div>

@@ -50,7 +50,6 @@ const App: React.FC = () => {
   
   // Derived State
   const currentStory = state.stories.find(s => s.id === state.currentStoryId) || null;
-  const onlineUsers = (Object.values(state.users) as User[]).filter(u => u.isOnline);
   const allUsers = Object.values(state.users) as User[];
 
   // Actions
@@ -191,7 +190,7 @@ const App: React.FC = () => {
         `}>
             {/* Main Visual Area */}
             <PokerTable 
-                users={onlineUsers}
+                users={allUsers}
                 currentStory={currentStory}
                 areVotesRevealed={state.areVotesRevealed}
                 currentUserRole={currentUser.role}

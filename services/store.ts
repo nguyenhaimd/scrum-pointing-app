@@ -2,8 +2,11 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { AppState, Action, User, Story, UserRole, TimerState, Reaction } from '../types';
 import { db } from '../firebaseConfig';
-import { ref, onValue, set, update, remove, onDisconnect, push, query, limitToLast, get } from 'firebase/database';
 import { STALE_USER_TIMEOUT } from '../constants';
+// We import firebase to access types if needed, although 'db' is typed from config usually.
+// In v8, we operate directly on the 'db' object references.
+import firebase from 'firebase/compat/app';
+import 'firebase/compat/database';
 
 // Initial empty state
 const initialState: AppState = {
@@ -32,9 +35,9 @@ export const useAppStore = (currentUser: User | null) => {
   useEffect(() => {
     if (!currentUser || !db) return;
 
-    const sessionRef = ref(db, `sessions/${roomId}`);
+    const sessionRef = db.ref(`sessions/${roomId}`);
 
-    const unsubscribe = onValue(sessionRef, (snapshot) => {
+    const handleValue = (snapshot: firebase.database.DataSnapshot) => {
       const data = snapshot.val();
       if (data) {
         const rawStories = data.stories ? Object.values(data.stories) : [];
@@ -74,8 +77,6 @@ export const useAppStore = (currentUser: User | null) => {
         } : initialState.timer;
 
         // Parse Reactions
-        // We only want to trigger state update if there is a NEW reaction.
-        // Logic: find the reaction with largest timestamp.
         let newLastReaction: Reaction | null = null;
         if (data.reactions) {
             const allReactions = Object.values(data.reactions) as Reaction[];
@@ -104,28 +105,31 @@ export const useAppStore = (currentUser: User | null) => {
         setState(initialState);
         usersRef.current = {};
       }
-    });
+    };
 
-    return () => unsubscribe();
+    sessionRef.on('value', handleValue);
+
+    return () => {
+        sessionRef.off('value', handleValue);
+    };
   }, [roomId, currentUser]);
 
   // 2. MANAGE PRESENCE (Self) & CONNECTION & CLEANUP
   useEffect(() => {
     if (!currentUser || !db) return;
 
-    const userRef = ref(db, `sessions/${roomId}/users/${currentUser.id}`);
-    const rootRef = ref(db, `sessions/${roomId}`);
-    const connectedRef = ref(db, '.info/connected');
+    const userRef = db.ref(`sessions/${roomId}/users/${currentUser.id}`);
+    const rootRef = db.ref(`sessions/${roomId}`);
+    const connectedRef = db.ref('.info/connected');
 
-    const unsubscribeConnected = onValue(connectedRef, (snap) => {
+    const handleConnected = (snap: firebase.database.DataSnapshot) => {
       const connected = snap.val();
       setIsConnected(!!connected);
 
       if (connected === true) {
-        onDisconnect(userRef).update({ isOnline: false }).then(() => {
+        userRef.onDisconnect().update({ isOnline: false }).then(() => {
             // When user joins/reconnects, we explicitly set sessionStatus to 'active'
-            // This ensures that if they are logging back in after an END_SESSION, the room is reset for them.
-            update(rootRef, { 
+            rootRef.update({ 
                 [`users/${currentUser.id}`]: { 
                     ...currentUser,
                     isOnline: true, 
@@ -135,28 +139,23 @@ export const useAppStore = (currentUser: User | null) => {
             });
         });
       }
-    });
+    };
+
+    connectedRef.on('value', handleConnected);
 
     const interval = setInterval(() => {
         if (!db) return;
         const now = Date.now();
-        update(userRef, { lastHeartbeat: now }).catch(() => {});
+        userRef.update({ lastHeartbeat: now }).catch(() => {});
 
         if (currentUser.role === UserRole.SCRUM_MASTER) {
-            const currentUsers = usersRef.current;
-            Object.values(currentUsers).forEach((user) => {
-                if (now - user.lastHeartbeat > STALE_USER_TIMEOUT) {
-                    remove(ref(db, `sessions/${roomId}/users/${user.id}`));
-                }
-            });
-            
             // Cleanup old reactions (older than 1 minute)
-            const reactionsRef = ref(db, `sessions/${roomId}/reactions`);
-            get(query(reactionsRef)).then(snap => {
+            const reactionsRef = db.ref(`sessions/${roomId}/reactions`);
+            reactionsRef.once('value').then(snap => {
                 if(snap.exists()) {
                     snap.forEach(child => {
                         if (now - child.val().timestamp > 60000) {
-                            remove(child.ref);
+                            child.ref.remove();
                         }
                     });
                 }
@@ -165,10 +164,10 @@ export const useAppStore = (currentUser: User | null) => {
     }, 60000);
 
     return () => {
-        unsubscribeConnected();
+        connectedRef.off('value', handleConnected);
         clearInterval(interval);
         if (db) {
-             update(userRef, { isOnline: false }).catch(() => {});
+             userRef.update({ isOnline: false }).catch(() => {});
         }
     };
   }, [currentUser, roomId]);
@@ -181,24 +180,24 @@ export const useAppStore = (currentUser: User | null) => {
 
     switch (action.type) {
       case 'ADD_STORY':
-        await set(ref(db, `${rootPath}/stories/${action.payload.id}`), action.payload);
+        await db.ref(`${rootPath}/stories/${action.payload.id}`).set(action.payload);
         break;
 
       case 'DELETE_STORY':
-        await remove(ref(db, `${rootPath}/stories/${action.payload}`));
+        await db.ref(`${rootPath}/stories/${action.payload}`).remove();
         if (state.currentStoryId === action.payload) {
-             await update(ref(db, rootPath), { currentStoryId: null, areVotesRevealed: false });
+             await db.ref(rootPath).update({ currentStoryId: null, areVotesRevealed: false });
         }
         break;
 
       case 'SET_CURRENT_STORY':
-        await update(ref(db, rootPath), { 
+        await db.ref(rootPath).update({ 
             currentStoryId: action.payload,
             areVotesRevealed: false
         });
         if (action.payload) {
-            await update(ref(db, `${rootPath}/stories/${action.payload}`), { status: 'active' });
-            await set(ref(db, `${rootPath}/timer`), {
+            await db.ref(`${rootPath}/stories/${action.payload}`).update({ status: 'active' });
+            await db.ref(`${rootPath}/timer`).set({
                 status: 'paused',
                 startTime: null,
                 accumulated: 0
@@ -208,34 +207,31 @@ export const useAppStore = (currentUser: User | null) => {
 
       case 'VOTE':
         if (!state.currentStoryId) return;
-        await update(ref(db, `${rootPath}/stories/${state.currentStoryId}/votes`), {
+        await db.ref(`${rootPath}/stories/${state.currentStoryId}/votes`).update({
             [action.payload.userId]: action.payload.value
         });
         break;
 
       case 'REVEAL_VOTES':
-        await update(ref(db, rootPath), { areVotesRevealed: true });
+        await db.ref(rootPath).update({ areVotesRevealed: true });
         break;
 
       case 'RESET_VOTES':
         if (!state.currentStoryId) return;
-        await remove(ref(db, `${rootPath}/stories/${state.currentStoryId}/votes`));
-        await update(ref(db, rootPath), { areVotesRevealed: false });
+        await db.ref(`${rootPath}/stories/${state.currentStoryId}/votes`).remove();
+        await db.ref(rootPath).update({ areVotesRevealed: false });
         break;
 
       case 'FINISH_STORY':
-        await update(ref(db, `${rootPath}/stories/${action.payload.storyId}`), {
+        await db.ref(`${rootPath}/stories/${action.payload.storyId}`).update({
             status: 'completed',
             finalPoints: action.payload.points
         });
-        // NOTE: We do NOT clear currentStoryId here anymore. 
-        // We keep the finished story on the table to show the result.
-        // The Scrum Master must explicitly move to the next story.
         
         if (state.timer.status === 'running') {
             const now = Date.now();
             const elapsed = state.timer.startTime ? now - state.timer.startTime : 0;
-            await update(ref(db, `${rootPath}/timer`), {
+            await db.ref(`${rootPath}/timer`).update({
                 status: 'paused',
                 startTime: null,
                 accumulated: state.timer.accumulated + elapsed
@@ -244,38 +240,36 @@ export const useAppStore = (currentUser: User | null) => {
         break;
 
       case 'SEND_MESSAGE':
-        const msgRef = push(ref(db, `${rootPath}/chatMessages`));
-        await set(msgRef, action.payload);
+        const msgRef = db.ref(`${rootPath}/chatMessages`).push();
+        await msgRef.set(action.payload);
         break;
 
       case 'UPDATE_STORY':
         if(action.payload.id) {
-            await update(ref(db, `${rootPath}/stories/${action.payload.id}`), action.payload);
+            await db.ref(`${rootPath}/stories/${action.payload.id}`).update(action.payload);
         }
         break;
 
       case 'CLEAR_QUEUE':
-        await set(ref(db, `${rootPath}/stories`), {});
-        await remove(ref(db, `${rootPath}/chatMessages`));
-        await update(ref(db, rootPath), { currentStoryId: null, areVotesRevealed: false });
-        await set(ref(db, `${rootPath}/timer`), { status: 'paused', startTime: null, accumulated: 0 });
+        await db.ref(`${rootPath}/stories`).set({});
+        await db.ref(`${rootPath}/chatMessages`).remove();
+        await db.ref(rootPath).update({ currentStoryId: null, areVotesRevealed: false });
+        await db.ref(`${rootPath}/timer`).set({ status: 'paused', startTime: null, accumulated: 0 });
         break;
 
       case 'END_SESSION':
-        // Wipes everything and sets status to 'ended'
-        // This triggers clients to log out
-        await set(ref(db, rootPath), {
+        await db.ref(rootPath).set({
             sessionStatus: 'ended'
         });
         break;
         
       case 'REMOVE_USER':
-         await remove(ref(db, `${rootPath}/users/${action.payload}`));
+         await db.ref(`${rootPath}/users/${action.payload}`).remove();
          break;
 
       case 'START_TIMER':
          if (state.timer.status === 'running') return;
-         await update(ref(db, `${rootPath}/timer`), {
+         await db.ref(`${rootPath}/timer`).update({
              status: 'running',
              startTime: Date.now(),
              accumulated: state.timer.accumulated
@@ -286,7 +280,7 @@ export const useAppStore = (currentUser: User | null) => {
          if (state.timer.status === 'paused') return;
          const now = Date.now();
          const elapsed = state.timer.startTime ? now - state.timer.startTime : 0;
-         await update(ref(db, `${rootPath}/timer`), {
+         await db.ref(`${rootPath}/timer`).update({
              status: 'paused',
              startTime: null,
              accumulated: state.timer.accumulated + elapsed
@@ -294,7 +288,7 @@ export const useAppStore = (currentUser: User | null) => {
          break;
 
       case 'RESET_TIMER':
-         await set(ref(db, `${rootPath}/timer`), {
+         await db.ref(`${rootPath}/timer`).set({
              status: 'paused',
              startTime: null,
              accumulated: 0
@@ -302,14 +296,14 @@ export const useAppStore = (currentUser: User | null) => {
          break;
 
       case 'SEND_REACTION':
-          const rRef = push(ref(db, `${rootPath}/reactions`));
+          const rRef = db.ref(`${rootPath}/reactions`).push();
           const reaction: Reaction = {
               id: rRef.key!,
               userId: action.payload.userId,
               emoji: action.payload.emoji,
               timestamp: Date.now()
           };
-          await set(rRef, reaction);
+          await rRef.set(reaction);
           break;
 
       case 'JOIN_SESSION':

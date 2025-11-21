@@ -1,6 +1,6 @@
 
-import { initializeApp } from 'firebase/app';
-import { getDatabase, Database } from 'firebase/database';
+import firebase from 'firebase/compat/app';
+import 'firebase/compat/database';
 
 // Helper to safely access environment variables in various environments (Vite, CRA, Node, etc.)
 const getEnvVar = (key: string): string | undefined => {
@@ -59,7 +59,7 @@ const firebaseConfig = {
 };
 
 let app;
-let db: Database | undefined;
+let db: firebase.database.Database | undefined;
 
 // --- VALIDATION ---
 const missingVars: string[] = [];
@@ -80,14 +80,18 @@ if (missingVars.length > 0) {
   `);
 } else {
   try {
-    // Initialize Firebase
-    app = initializeApp(firebaseConfig);
+    // Initialize Firebase (Check if already initialized)
+    if (!firebase.apps.length) {
+      app = firebase.initializeApp(firebaseConfig);
+    } else {
+      app = firebase.app();
+    }
     
     if (!databaseURL) {
         console.warn('⚠️ FIREBASE WARNING: FIREBASE_DATABASE_URL is missing. Real-time features will not work.');
     } else {
         try {
-            db = getDatabase(app);
+            db = app.database();
             console.log('✅ Firebase initialized successfully');
         } catch (dbError) {
              console.error('❌ Firebase Database Initialization Failed:', dbError);

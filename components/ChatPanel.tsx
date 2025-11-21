@@ -1,4 +1,7 @@
+
 import React, { useState, useEffect, useRef } from 'react';
+// @ts-ignore
+import confetti from 'canvas-confetti';
 import { ChatMessage, User, Story, UserRole } from '../types';
 
 interface ChatPanelProps {
@@ -59,6 +62,16 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
 
     const text = input.trim();
     setInput('');
+
+    // Easter egg: Haifetti
+    if (text.toLowerCase() === 'haifetti') {
+        confetti({
+            particleCount: 150,
+            spread: 70,
+            origin: { y: 0.6 },
+            colors: ['#6366f1', '#8b5cf6', '#ec4899']
+        });
+    }
 
     // 1. Send User Message
     const userMsg: ChatMessage = {

@@ -90,20 +90,6 @@ const StoryPanel: React.FC<StoryPanelProps> = ({
     onClearQueue?.();
   };
 
-  const handleRemoveStaleUsers = () => {
-    const now = Date.now();
-    let count = 0;
-    users.forEach(user => {
-        if (now - user.lastHeartbeat > STALE_USER_TIMEOUT) {
-            onRemoveUser?.(user.id);
-            count++;
-        }
-    });
-    if (count > 0) {
-        console.log(`Removed ${count} stale users.`);
-    }
-  };
-
   return (
     <div className="bg-slate-800 border-b border-slate-700 md:border-b-0 md:border-r md:w-80 flex flex-col h-full transition-all relative">
       <div className="p-4 border-b border-slate-700 flex justify-between items-center shrink-0">
@@ -227,15 +213,6 @@ const StoryPanel: React.FC<StoryPanelProps> = ({
 
             <div className="border-t border-slate-700 my-1"></div>
             
-            <Button
-                size="sm"
-                variant="secondary"
-                className="w-full mb-2 text-slate-400 border-slate-600 hover:text-white hover:border-slate-400 bg-slate-800"
-                onClick={handleRemoveStaleUsers}
-            >
-                Remove Stale Users
-            </Button>
-
             <Button 
                 size="sm" 
                 variant="danger" 
