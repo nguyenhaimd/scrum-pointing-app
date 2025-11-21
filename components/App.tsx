@@ -5,7 +5,7 @@ import VotingControls from './components/VotingControls';
 import StoryPanel from './components/StoryPanel';
 import ChatPanel from './components/ChatPanel';
 import { useAppStore } from './services/store';
-import { User, ChatMessage } from './types';
+import { User } from './types';
 import { USER_STORAGE_KEY, SOUND_PREF_KEY, STALE_USER_TIMEOUT } from './constants';
 import { setMuted, playSound } from './services/soundService';
 
@@ -24,7 +24,6 @@ const App: React.FC = () => {
   const [mobileView, setMobileView] = useState<MobileView>('table');
   const [isSoundMuted, setIsSoundMuted] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
-  const [localSystemMessages, setLocalSystemMessages] = useState<ChatMessage[]>([]);
   const [now, setNow] = useState(Date.now());
 
   // Try to restore session on mount from localStorage (persists across close/reopen)
@@ -71,11 +70,6 @@ const App: React.FC = () => {
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [state.users, now]);
 
-  // Merge server chat messages with local system messages
-  const allMessages = useMemo(() => {
-      return [...state.chatMessages, ...localSystemMessages].sort((a, b) => a.timestamp - b.timestamp);
-  }, [state.chatMessages, localSystemMessages]);
-
   const prevVisibleUsersRef = useRef<User[]>([]);
 
   // Notification logic for joins/leaves
@@ -84,6 +78,7 @@ const App: React.FC = () => {
       const prev = prevVisibleUsersRef.current;
 
       // If this is the first time we see users (and we found some), just update ref and skip notifications
+      // This avoids spamming "Joined" for existing users when we first load the page
       if (prev.length === 0 && curr.length > 0) {
           prevVisibleUsersRef.current = curr;
           return;
@@ -92,45 +87,25 @@ const App: React.FC = () => {
       // Check for left users
       prev.forEach(u => {
           if (!curr.find(c => c.id === u.id)) {
-              if (u.id !== currentUser?.id) { 
-                  addToast(`${u.name} disconnected`, 'error'); // Transient
+              if (u.id !== currentUser?.id) { // Don't notify self
+                  addToast(`${u.name} disconnected`, 'error'); 
                   playSound.leave();
-                  
-                  // Add to chat log
-                  setLocalSystemMessages(prevMsgs => [...prevMsgs, {
-                      id: `sys-leave-${Date.now()}-${u.id}`,
-                      userId: 'system',
-                      userName: 'System',
-                      text: `${u.name} left the session`,
-                      timestamp: Date.now(),
-                      isSystem: true
-                  }]);
               }
           }
       });
       
-      // Check for joined users
+      // Check for joined users (Optional but good UX)
       curr.forEach(u => {
            if (!prev.find(p => p.id === u.id)) {
               if (u.id !== currentUser?.id) {
-                 addToast(`${u.name} joined`, 'success');
+                 addToast(`${u.name} joined`, 'info');
                  playSound.join();
-
-                 // Add to chat log
-                 setLocalSystemMessages(prevMsgs => [...prevMsgs, {
-                    id: `sys-join-${Date.now()}-${u.id}`,
-                    userId: 'system',
-                    userName: 'System',
-                    text: `${u.name} joined the session`,
-                    timestamp: Date.now(),
-                    isSystem: true
-                }]);
               }
            }
       });
 
       prevVisibleUsersRef.current = curr;
-  }, [visibleUsers, currentUser]); 
+  }, [visibleUsers, currentUser]); // Re-run whenever the visible list changes
 
   const addToast = (message: string, type: Toast['type'] = 'info', persistent = false) => {
       const id = crypto.randomUUID();
@@ -139,7 +114,7 @@ const App: React.FC = () => {
       if (!persistent) {
           setTimeout(() => {
               removeToast(id);
-          }, 3000);
+          }, 4000);
       }
   };
 
@@ -174,30 +149,30 @@ const App: React.FC = () => {
   return (
     <div className="flex flex-col h-screen bg-slate-900 text-white overflow-hidden relative">
       
-      {/* Toast Container - Top Center */}
-      <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] flex flex-col gap-2 w-full max-w-sm px-4 pointer-events-auto">
+      {/* Toast Container */}
+      <div className="fixed top-20 right-4 z-[80] flex flex-col gap-2 pointer-events-auto">
           {toasts.map(t => (
               <div 
                 key={t.id} 
                 className={`
-                    px-4 py-2.5 rounded-full shadow-2xl backdrop-blur-md animate-fade-in flex items-center justify-center gap-2 border text-sm font-medium
+                    px-4 py-3 rounded-lg shadow-xl backdrop-blur-md animate-fade-in flex items-center gap-3 border
                     ${t.type === 'error' 
-                        ? 'bg-red-900/90 border-red-500/50 text-red-100' 
-                        : t.type === 'success'
-                            ? 'bg-emerald-900/90 border-emerald-500/50 text-emerald-100'
-                            : 'bg-slate-800/90 border-slate-600 text-slate-200'
+                        ? 'bg-red-900/90 border-red-500/50 text-white' 
+                        : 'bg-slate-800/90 border-indigo-500/50 text-white'
                     }
                 `}
               >
-                  {t.type === 'error' && <span className="w-2 h-2 rounded-full bg-red-500 shrink-0 animate-pulse"></span>}
-                  {t.type === 'success' && <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>}
-                  {t.message}
+                  <span className={`w-2 h-2 rounded-full shrink-0 ${t.type === 'error' ? 'bg-red-500' : 'bg-indigo-500'}`}></span>
+                  <span className="text-sm font-medium">{t.message}</span>
+                  
                   {t.persistent && (
                       <button 
                         onClick={() => removeToast(t.id)}
-                        className="ml-2 p-0.5 hover:bg-white/10 rounded-full"
+                        className="ml-2 p-1 hover:bg-white/10 rounded text-white/70 hover:text-white transition-colors"
                       >
-                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+                          </svg>
                       </button>
                   )}
               </div>
@@ -361,7 +336,7 @@ const App: React.FC = () => {
             ${mobileView === 'chat' ? 'flex flex-col' : 'hidden'}
         `}>
             <ChatPanel 
-                messages={allMessages}
+                messages={state.chatMessages}
                 currentUser={currentUser}
                 users={visibleUsers}
                 currentStory={currentStory}

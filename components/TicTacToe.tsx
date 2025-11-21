@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Button from './Button';
 
 interface TicTacToeProps {
@@ -7,7 +7,9 @@ interface TicTacToeProps {
 
 const TicTacToe: React.FC<TicTacToeProps> = ({ onClose }) => {
   const [board, setBoard] = useState<(string | null)[]>(Array(9).fill(null));
-  const [xIsNext, setXIsNext] = useState(true);
+  const [xIsNext, setXIsNext] = useState(true); // Human is X and always goes first
+  const [gameStatus, setGameStatus] = useState<'playing' | 'won' | 'draw'>('playing');
+  const [winner, setWinner] = useState<string | null>(null);
 
   const calculateWinner = (squares: (string | null)[]) => {
     const lines = [
@@ -24,27 +26,102 @@ const TicTacToe: React.FC<TicTacToeProps> = ({ onClose }) => {
     return null;
   };
 
-  const winner = calculateWinner(board);
-  const isDraw = !winner && board.every(Boolean);
+  // AI Move Logic
+  useEffect(() => {
+    if (!xIsNext && gameStatus === 'playing') {
+        const timer = setTimeout(() => {
+            makeComputerMove();
+        }, 600); // Slight delay for realism
+        return () => clearTimeout(timer);
+    }
+  }, [xIsNext, gameStatus, board]);
+
+  const makeComputerMove = () => {
+      // 1. Check if AI can win
+      const winMove = findBestMove('O');
+      if (winMove !== -1) {
+          handleMove(winMove, 'O');
+          return;
+      }
+
+      // 2. Check if Player can win (Block them)
+      const blockMove = findBestMove('X');
+      if (blockMove !== -1) {
+          handleMove(blockMove, 'O');
+          return;
+      }
+
+      // 3. Pick Center
+      if (!board[4]) {
+          handleMove(4, 'O');
+          return;
+      }
+
+      // 4. Pick Random Available
+      const available = board.map((val, idx) => val === null ? idx : null).filter(val => val !== null) as number[];
+      if (available.length > 0) {
+          const random = available[Math.floor(Math.random() * available.length)];
+          handleMove(random, 'O');
+      }
+  };
+
+  const findBestMove = (player: string): number => {
+      const lines = [
+        [0, 1, 2], [3, 4, 5], [6, 7, 8],
+        [0, 3, 6], [1, 4, 7], [2, 5, 8],
+        [0, 4, 8], [2, 4, 6]
+      ];
+
+      for (let i = 0; i < lines.length; i++) {
+          const [a, b, c] = lines[i];
+          const vals = [board[a], board[b], board[c]];
+          const count = vals.filter(v => v === player).length;
+          const empty = vals.filter(v => v === null).length;
+          
+          if (count === 2 && empty === 1) {
+              if (!board[a]) return a;
+              if (!board[b]) return b;
+              if (!board[c]) return c;
+          }
+      }
+      return -1;
+  };
+
+  const handleMove = (i: number, player: string) => {
+      if (board[i] || gameStatus !== 'playing') return;
+
+      const nextBoard = [...board];
+      nextBoard[i] = player;
+      setBoard(nextBoard);
+
+      const w = calculateWinner(nextBoard);
+      if (w) {
+          setWinner(w);
+          setGameStatus('won');
+      } else if (nextBoard.every(Boolean)) {
+          setGameStatus('draw');
+      } else {
+          setXIsNext(player === 'O'); // If O played, next is X
+      }
+  };
 
   const handleClick = (i: number) => {
-    if (board[i] || winner) return;
-    const nextBoard = [...board];
-    nextBoard[i] = xIsNext ? 'X' : 'O';
-    setBoard(nextBoard);
-    setXIsNext(!xIsNext);
+    if (gameStatus !== 'playing' || !xIsNext) return; // Only allow click if playing and it's X's turn
+    handleMove(i, 'X');
   };
 
   const resetGame = () => {
       setBoard(Array(9).fill(null));
       setXIsNext(true);
+      setGameStatus('playing');
+      setWinner(null);
   }
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/80 backdrop-blur-sm animate-fade-in p-4">
       <div className="bg-slate-800 border border-slate-700 rounded-2xl shadow-2xl p-6 max-w-sm w-full flex flex-col items-center">
         <div className="flex justify-between items-center w-full mb-4">
-            <h3 className="text-xl font-bold text-indigo-400">Tic-Tac-Toe</h3>
+            <h3 className="text-xl font-bold text-indigo-400">Man vs Machine</h3>
             <button onClick={onClose} className="text-slate-400 hover:text-white">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>
@@ -55,10 +132,11 @@ const TicTacToe: React.FC<TicTacToeProps> = ({ onClose }) => {
                 <button
                     key={i}
                     onClick={() => handleClick(i)}
+                    disabled={!!cell || !xIsNext || gameStatus !== 'playing'}
                     className={`
                         w-20 h-20 rounded-lg text-4xl font-bold flex items-center justify-center transition-all
                         ${cell === 'X' ? 'text-indigo-400 bg-slate-700/50' : cell === 'O' ? 'text-emerald-400 bg-slate-700/50' : 'bg-slate-700 hover:bg-slate-600'}
-                        ${!cell && !winner ? 'cursor-pointer' : 'cursor-default'}
+                        ${!cell && xIsNext && gameStatus === 'playing' ? 'cursor-pointer hover:ring-2 hover:ring-indigo-500/50' : 'cursor-default'}
                     `}
                 >
                     {cell}
@@ -66,8 +144,18 @@ const TicTacToe: React.FC<TicTacToeProps> = ({ onClose }) => {
             ))}
         </div>
 
-        <div className="text-lg font-bold mb-4 text-white">
-            {winner ? `Winner: ${winner} 🎉` : isDraw ? "It's a Draw!" : `Next Player: ${xIsNext ? 'X' : 'O'}`}
+        <div className="text-lg font-bold mb-4 text-white h-8">
+            {gameStatus === 'won' ? (
+                <span className={winner === 'X' ? 'text-indigo-400' : 'text-emerald-400'}>
+                    {winner === 'X' ? 'You Won! 🎉' : 'AI Won 🤖'}
+                </span>
+            ) : gameStatus === 'draw' ? (
+                <span className="text-slate-400">It's a Draw!</span>
+            ) : (
+                <span className="text-slate-400 text-sm animate-pulse">
+                    {xIsNext ? 'Your Turn (X)' : 'AI Thinking...'}
+                </span>
+            )}
         </div>
 
         <Button onClick={resetGame} variant="secondary" size="sm">

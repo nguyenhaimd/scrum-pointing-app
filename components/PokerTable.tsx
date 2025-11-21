@@ -69,7 +69,8 @@ const PokerTable: React.FC<PokerTableProps> = ({
                 particleCount: 150,
                 spread: 70,
                 origin: { y: 0.6 },
-                colors: ['#6366f1', '#8b5cf6', '#ec4899']
+                colors: ['#6366f1', '#8b5cf6', '#ec4899'],
+                zIndex: 9999 // Force on top
             });
         } else {
             // Simple Reveal Pop
@@ -79,7 +80,8 @@ const PokerTable: React.FC<PokerTableProps> = ({
                 origin: { y: 0.6 },
                 gravity: 1.2,
                 scalar: 0.8,
-                colors: ['#ffffff', '#94a3b8', '#64748b']
+                colors: ['#ffffff', '#94a3b8', '#64748b'],
+                zIndex: 9999 // Force on top
             });
         }
     }
@@ -108,13 +110,18 @@ const PokerTable: React.FC<PokerTableProps> = ({
       
       // Determine consensus mode(s) - handle ties
       let mode = '-';
+      let agreement = 0;
+
       if (sortedCounts.length > 0) {
           const maxVotes = sortedCounts[0][1];
           const winners = sortedCounts.filter(([_, count]) => count === maxVotes).map(([val]) => val);
           mode = winners.join(' & ');
+          
+          // Calculate agreement percentage
+          agreement = Math.round((maxVotes / votes.length) * 100);
       }
 
-      return { mode, distribution: sortedCounts, totalVotes: votes.length };
+      return { mode, distribution: sortedCounts, totalVotes: votes.length, agreement };
   }, [currentStory?.votes]);
 
   const handleFinish = () => {
@@ -188,7 +195,7 @@ const PokerTable: React.FC<PokerTableProps> = ({
            )}
 
            {/* Center Status / Results */}
-           <div className="w-full max-w-2xl min-h-[100px] sm:min-h-[120px] flex flex-col items-center justify-center shrink-0">
+           <div className="w-full max-w-3xl min-h-[100px] sm:min-h-[120px] flex flex-col items-center justify-center shrink-0">
                {!currentStory ? (
                    <div className="text-slate-500 text-lg sm:text-xl animate-pulse">Waiting for story...</div>
                ) : areVotesRevealed && stats ? (
@@ -205,51 +212,83 @@ const PokerTable: React.FC<PokerTableProps> = ({
                              )}
                         </div>
                    ) : (
-                       /* Standard Stats View */
-                       <div className="w-full bg-slate-800/80 backdrop-blur-md border border-indigo-500/30 rounded-2xl p-4 sm:p-6 shadow-2xl animate-fade-in">
-                           <div className="flex flex-col md:flex-row items-center justify-between gap-4 sm:gap-6">
-                               {/* Consensus Only */}
-                               <div className="flex justify-center w-full md:w-auto">
-                                   <div className="text-center">
-                                       <div className="text-[10px] sm:text-xs text-slate-400 uppercase tracking-wider mb-1">Consensus</div>
-                                       <div className="text-3xl sm:text-4xl font-bold text-white drop-shadow-lg">{stats.mode}</div>
+                       /* Enhanced Stats View */
+                       <div className="w-full bg-slate-800/80 backdrop-blur-md border border-indigo-500/30 rounded-2xl p-6 shadow-2xl animate-fade-in">
+                           
+                           {/* Agreement Meter */}
+                           <div className="flex items-center gap-3 mb-6">
+                                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Agreement</span>
+                                <div className="flex-1 h-3 bg-slate-700 rounded-full overflow-hidden relative">
+                                    <div 
+                                        className={`h-full transition-all duration-1000 ease-out rounded-full ${stats.agreement === 100 ? 'bg-emerald-500' : stats.agreement > 70 ? 'bg-indigo-500' : 'bg-yellow-500'}`}
+                                        style={{ width: `${stats.agreement}%` }}
+                                    ></div>
+                                </div>
+                                <span className={`text-sm font-bold ${stats.agreement === 100 ? 'text-emerald-400' : 'text-white'}`}>
+                                    {stats.agreement}%
+                                </span>
+                           </div>
+
+                           <div className="flex flex-col md:flex-row items-start justify-between gap-6">
+                               {/* Primary Consensus Result */}
+                               <div className="w-full md:w-auto flex flex-col items-center justify-center bg-slate-900/50 p-4 rounded-xl border border-slate-700/50 min-w-[120px]">
+                                   <div className="text-xs text-slate-400 uppercase tracking-wider mb-2">Consensus</div>
+                                   <div className="text-5xl font-bold text-white drop-shadow-[0_0_10px_rgba(99,102,241,0.5)]">
+                                       {stats.mode}
                                    </div>
                                </div>
 
-                               {/* Distribution Bar */}
-                               <div className="flex-1 w-full">
-                                   <div className="text-[10px] sm:text-xs text-slate-400 mb-2">Vote Distribution</div>
-                                   <div className="flex h-3 sm:h-4 rounded-full overflow-hidden bg-slate-700">
-                                       {stats.distribution.map(([val, count], i) => (
-                                           <div 
-                                             key={val}
-                                             style={{ width: `${(count / stats.totalVotes) * 100}%` }}
-                                             className={`h-full ${['bg-indigo-500', 'bg-purple-500', 'bg-pink-500', 'bg-blue-500'][i % 4]} border-r border-slate-900 last:border-0`}
-                                             title={`${count} votes for ${val}`}
-                                           />
-                                       ))}
-                                   </div>
-                                   <div className="flex justify-between mt-1">
-                                        {stats.distribution.map(([val, count]) => (
-                                            <div key={val} className="text-[10px] text-slate-500 text-center">
-                                                <span className="font-bold text-slate-300">{val}</span> <span className="opacity-50">({count})</span>
-                                            </div>
-                                        ))}
-                                   </div>
+                               {/* Visual Distribution Cards */}
+                               <div className="flex-1 w-full grid grid-cols-3 sm:flex gap-2 sm:gap-3 justify-center md:justify-end items-end h-full">
+                                   {stats.distribution.map(([val, count], index) => {
+                                       const percentage = count / stats.totalVotes;
+                                       const isWinner = val === stats.mode;
+                                       
+                                       return (
+                                           <div key={val} className="flex flex-col items-center gap-1 group">
+                                               <div className="relative">
+                                                    <div 
+                                                        className={`
+                                                            flex items-center justify-center rounded-lg font-bold transition-all
+                                                            ${isWinner 
+                                                                ? 'w-12 h-16 sm:w-14 sm:h-20 text-xl sm:text-2xl bg-indigo-600 text-white shadow-lg scale-105 z-10 border-2 border-indigo-400' 
+                                                                : 'w-10 h-14 sm:w-12 sm:h-16 text-sm sm:text-base bg-slate-700 text-slate-300 border border-slate-600 opacity-80'
+                                                            }
+                                                        `}
+                                                    >
+                                                        {val}
+                                                    </div>
+                                                    <div className={`
+                                                        absolute -top-2 -right-2 w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center text-xs font-bold border-2 border-slate-800
+                                                        ${isWinner ? 'bg-white text-indigo-600' : 'bg-slate-600 text-white'}
+                                                    `}>
+                                                        {count}
+                                                    </div>
+                                               </div>
+                                               {/* Bar Visual */}
+                                               <div className="w-1.5 bg-slate-700 rounded-full h-12 sm:h-16 flex items-end overflow-hidden mt-1">
+                                                    <div 
+                                                        style={{ height: `${percentage * 100}%` }} 
+                                                        className={`w-full rounded-t-full ${isWinner ? 'bg-indigo-500' : 'bg-slate-500'}`}
+                                                    />
+                                               </div>
+                                           </div>
+                                       );
+                                   })}
                                </div>
                            </div>
 
                            {/* SM Controls for Finishing */}
                            {isScrumMaster && (
-                               <div className="mt-4 sm:mt-6 pt-4 border-t border-slate-700 flex flex-col sm:flex-row items-center justify-end gap-4">
+                               <div className="mt-6 pt-4 border-t border-slate-700 flex flex-col sm:flex-row items-center justify-end gap-4">
                                    <div className="flex items-center gap-2">
-                                       <span className="text-sm text-slate-300">Final:</span>
+                                       <span className="text-sm text-slate-300">Final Score:</span>
                                        <div className="flex bg-slate-900 rounded-lg p-1 border border-slate-700 overflow-x-auto max-w-[200px] sm:max-w-none scrollbar-hide">
                                            {POINTING_SCALE.filter(p => typeof p === 'number' || p === '0' || p === '?').map(p => (
                                                <button
                                                  key={p}
                                                  onClick={() => setManualFinalScore(p)}
-                                                 className={`px-2 sm:px-3 py-1 rounded text-xs sm:text-sm font-bold transition-colors ${
+                                                 className={`px-3 py-1 rounded text-xs sm:text-sm font-bold transition-colors ${
                                                      (manualFinalScore || (stats.mode === String(p) ? p : null)) == p 
                                                      ? 'bg-indigo-600 text-white' 
                                                      : 'text-slate-400 hover:text-white hover:bg-slate-800'
@@ -262,7 +301,7 @@ const PokerTable: React.FC<PokerTableProps> = ({
                                    </div>
                                    <div className="flex gap-2 w-full sm:w-auto">
                                        <Button size="sm" variant="secondary" onClick={onReset} className="flex-1 sm:flex-none">Re-Vote</Button>
-                                       <Button size="sm" onClick={handleFinish} className="flex-1 sm:flex-none">Complete</Button>
+                                       <Button size="sm" onClick={handleFinish} className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-500 border-emerald-500">Complete</Button>
                                    </div>
                                </div>
                            )}
