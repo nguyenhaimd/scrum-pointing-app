@@ -51,19 +51,36 @@ const PokerTable: React.FC<PokerTableProps> = ({
   useEffect(() => {
     if (areVotesRevealed && !prevRevealed.current) {
         playSound.reveal();
+        
+        let isConsensus = false;
         // Check for consensus (even if just 1 person voted, if everyone agrees, it's consensus)
         if (currentStory && currentStory.votes) {
             const votes = Object.values(currentStory.votes).filter(v => v !== null);
             // Normalize to string to ensure loose equality (e.g. 5 vs "5")
             const uniqueVotes = new Set(votes.map(v => String(v)));
             if (votes.length > 0 && uniqueVotes.size === 1) {
-                confetti({
-                    particleCount: 150,
-                    spread: 70,
-                    origin: { y: 0.6 },
-                    colors: ['#6366f1', '#8b5cf6', '#ec4899']
-                });
+                isConsensus = true;
             }
+        }
+
+        if (isConsensus) {
+            // Big Celebration
+            confetti({
+                particleCount: 150,
+                spread: 70,
+                origin: { y: 0.6 },
+                colors: ['#6366f1', '#8b5cf6', '#ec4899']
+            });
+        } else {
+            // Simple Reveal Pop
+            confetti({
+                particleCount: 50,
+                spread: 50,
+                origin: { y: 0.6 },
+                gravity: 1.2,
+                scalar: 0.8,
+                colors: ['#ffffff', '#94a3b8', '#64748b']
+            });
         }
     }
     prevRevealed.current = areVotesRevealed;
