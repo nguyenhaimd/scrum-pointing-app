@@ -55,49 +55,112 @@ const TableSurfaceContent: React.FC<{
   }
 
   if (areVotesRevealed) {
+    // Calculate consensus (modes)
+    const voteCounts = stats.counts;
+    const maxVotes = Math.max(...Object.values(voteCounts), 0);
+    const consensusValues = Object.entries(voteCounts)
+        .filter(([_, count]) => count === maxVotes)
+        .map(([val]) => val)
+        .sort((a, b) => {
+             const na = Number(a);
+             const nb = Number(b);
+             if (!isNaN(na) && !isNaN(nb)) return na - nb;
+             return a.localeCompare(b);
+        });
+
+    // Helper for distribution bar sorting
+    const sortedDistribution = Object.entries(voteCounts).sort((a, b) => {
+        const na = Number(a[0]);
+        const nb = Number(b[0]);
+        if (!isNaN(na) && !isNaN(nb)) return na - nb;
+        return a[0].localeCompare(b[0]);
+    });
+
     return (
-      <div className="text-center w-full max-w-md space-y-4 md:space-y-6 animate-fade-in">
-        <div className="grid grid-cols-2 gap-3 md:gap-4">
-          <div className="bg-slate-900/80 p-3 md:p-4 rounded-xl border border-indigo-500/30 backdrop-blur-sm">
-            <div className="text-slate-400 text-[10px] md:text-xs uppercase font-bold">Average</div>
-            <div className="text-2xl md:text-3xl font-bold text-indigo-400">{stats.average}</div>
-          </div>
-          <div className="bg-slate-900/80 p-3 md:p-4 rounded-xl border border-indigo-500/30 backdrop-blur-sm">
-            <div className="text-slate-400 text-[10px] md:text-xs uppercase font-bold">Agreement</div>
-            <div className={`text-2xl md:text-3xl font-bold ${stats.agreement >= 80 ? 'text-emerald-400' : 'text-yellow-400'}`}>
-              {stats.agreement}%
+      <div className="text-center w-full max-w-md space-y-6 animate-fade-in flex flex-col items-center">
+        
+        {/* Consensus Display */}
+        <div className="bg-slate-800/80 p-6 rounded-2xl border-2 border-indigo-500/50 shadow-[0_0_40px_rgba(99,102,241,0.25)] backdrop-blur-md w-full transform transition-all hover:scale-[1.02]">
+            <div className="text-indigo-300 text-xs uppercase font-bold tracking-widest mb-3">Team Consensus</div>
+            
+            <div className="flex justify-center items-center gap-3 flex-wrap min-h-[5rem]">
+                {consensusValues.length > 0 ? (
+                    consensusValues.map((val, idx) => (
+                        <div key={val} className="flex items-center">
+                            <span className="text-7xl md:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white to-slate-300 drop-shadow-sm">
+                                {val}
+                            </span>
+                            {idx < consensusValues.length - 1 && (
+                                <span className="text-4xl text-indigo-500/50 mx-2 font-light">&</span>
+                            )}
+                        </div>
+                    ))
+                ) : (
+                    <span className="text-2xl text-slate-500 font-medium">No Votes Cast</span>
+                )}
             </div>
-          </div>
+            
+            <div className="mt-4 flex justify-center">
+                <div className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full border bg-slate-900/50 ${stats.agreement >= 80 ? 'border-emerald-500/30 text-emerald-400' : 'border-yellow-500/30 text-yellow-400'}`}>
+                    <span className="text-xs font-bold uppercase tracking-wide opacity-80">Agreement</span>
+                    <span className="text-sm font-bold">{stats.agreement}%</span>
+                </div>
+            </div>
         </div>
 
         {/* Vote Distribution Bar */}
-        <div className="flex h-3 md:h-4 w-full rounded-full overflow-hidden bg-slate-700/50">
-          {Object.entries(stats.counts).map(([val, count], idx) => {
-            const colors = ['bg-indigo-500', 'bg-purple-500', 'bg-pink-500', 'bg-rose-500', 'bg-orange-500', 'bg-amber-500'];
-            const color = colors[parseInt(val) % colors.length] || 'bg-blue-500';
-            const width = (count / Object.keys(currentStory.votes).length) * 100;
-            return (
-              <div key={val} className={`${color} h-full`} style={{ width: `${width}%` }} title={`${val}: ${count} votes`} />
-            );
-          })}
+        <div className="w-full space-y-2 px-2">
+           <div className="flex justify-between text-[10px] uppercase font-bold text-slate-500 tracking-wider">
+              <span>Distribution</span>
+              <span>{Object.values(currentStory.votes).length} Total</span>
+           </div>
+           <div className="flex h-8 w-full rounded-lg overflow-hidden bg-slate-900 shadow-inner border border-slate-700/50">
+              {sortedDistribution.map(([val, count]) => {
+                  const colors = ['bg-indigo-500', 'bg-purple-500', 'bg-pink-500', 'bg-rose-500', 'bg-orange-500', 'bg-amber-500'];
+                  // Deterministic color based on value string
+                  const colorIdx = (val.charCodeAt(0) + (val.length > 1 ? val.charCodeAt(1) : 0)) % colors.length;
+                  const color = colors[colorIdx];
+                  
+                  const total = Object.values(currentStory.votes).length;
+                  const width = (count / total) * 100;
+                  
+                  return (
+                    <div 
+                        key={val} 
+                        className={`${color} h-full flex items-center justify-center text-xs font-bold text-white transition-all duration-500 border-r border-slate-900/20 last:border-0`} 
+                        style={{ width: `${width}%` }} 
+                        title={`${val}: ${count} votes`}
+                    >
+                        {width > 10 ? val : ''}
+                    </div>
+                  );
+              })}
+           </div>
         </div>
 
         {isScrumMaster && (
-          <div className="pt-3 md:pt-4 border-t border-slate-700/50 space-y-3">
-            <p className="text-xs md:text-sm text-slate-400 mb-1">Finalize Points:</p>
-            <div className="flex flex-wrap justify-center gap-1.5 md:gap-2">
+          <div className="pt-4 border-t border-slate-700/50 w-full space-y-4">
+            <p className="text-xs text-slate-400 uppercase font-bold tracking-wider">Finalize Points</p>
+            <div className="flex flex-wrap justify-center gap-2">
               {POINTING_SCALE.map(pts => (
                 <button
                   key={pts}
                   onClick={() => onFinalize(pts)}
-                  className="px-2.5 py-1 md:px-3 rounded bg-slate-700 hover:bg-indigo-600 text-slate-200 hover:text-white text-xs md:text-sm transition-colors border border-slate-600"
+                  className={`
+                    px-3 py-2 rounded-lg text-sm font-bold transition-all border border-slate-600
+                    ${consensusValues.includes(String(pts)) 
+                        ? 'bg-indigo-600 border-indigo-400 text-white shadow-[0_0_10px_rgba(99,102,241,0.4)] transform scale-110 mx-1' 
+                        : 'bg-slate-700 hover:bg-slate-600 text-slate-200 hover:text-white hover:border-slate-400'}
+                  `}
                 >
                   {pts}
                 </button>
               ))}
             </div>
-            <div className="flex justify-center gap-2 mt-2">
-              <Button size="sm" variant="secondary" onClick={onReset}>Revote</Button>
+            <div className="flex justify-center mt-2">
+              <Button size="sm" variant="outline" onClick={onReset} className="text-slate-400 hover:text-white border-slate-700 hover:border-slate-500">
+                Start Revote
+              </Button>
             </div>
           </div>
         )}
@@ -127,9 +190,9 @@ const TableSurfaceContent: React.FC<{
           size="lg"
           onClick={onReveal}
           disabled={Object.keys(currentStory.votes).length === 0}
-          className="shadow-[0_0_20px_rgba(79,70,229,0.4)] w-full md:w-auto"
+          className="shadow-[0_0_20px_rgba(79,70,229,0.4)] w-full md:w-auto font-bold tracking-wide"
         >
-          Reveal Votes
+          REVEAL CARDS
         </Button>
       ) : (
         <p className="text-sm md:text-base text-slate-500 animate-pulse">
