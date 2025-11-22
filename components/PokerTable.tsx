@@ -31,6 +31,39 @@ interface PokerTableProps {
 
 // --- Sub-components for Layout Management ---
 
+// Collapsible Reaction Bar
+const ReactionBar: React.FC<{ onReaction: (emoji: string) => void }> = ({ onReaction }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  
+  return (
+    <div className={`flex items-center bg-slate-800/80 backdrop-blur-md rounded-full border border-slate-700 shadow-xl transition-all duration-300 z-50 ${isOpen ? 'px-2 py-1.5 gap-2' : 'p-2'}`}>
+       <button 
+         onClick={() => setIsOpen(!isOpen)}
+         className={`w-8 h-8 flex items-center justify-center rounded-full transition-all duration-200 hover:scale-110 active:scale-95 ${isOpen ? 'bg-slate-700 text-slate-300 rotate-90' : 'bg-indigo-600 text-white hover:bg-indigo-500'}`}
+         title={isOpen ? "Close Reactions" : "React"}
+       >
+         {isOpen ? (
+             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+         ) : (
+             <span className="text-lg">😀</span>
+         )}
+       </button>
+       
+       <div className={`flex gap-1 overflow-hidden transition-all duration-300 ease-in-out ${isOpen ? 'max-w-[400px] opacity-100' : 'max-w-0 opacity-0'}`}>
+          {REACTION_EMOJIS.map(emoji => (
+             <button 
+                key={emoji} 
+                onClick={() => { onReaction(emoji); }} 
+                className="w-8 h-8 flex items-center justify-center text-lg hover:bg-white/10 rounded-full transition-transform hover:scale-125 active:scale-90"
+             >
+                {emoji}
+             </button>
+          ))}
+       </div>
+    </div>
+  );
+};
+
 // 1. The content displayed on the "Table Surface" (Story info or Results)
 const TableSurfaceContent: React.FC<{
   currentStory: Story | null;
@@ -42,6 +75,13 @@ const TableSurfaceContent: React.FC<{
   onFinalize: (val: string | number) => void;
 }> = ({ currentStory, areVotesRevealed, stats, isScrumMaster, onReveal, onReset, onFinalize }) => {
     
+  const [showManualEntry, setShowManualEntry] = useState(false);
+
+  // Reset manual entry toggle when story changes or votes reset
+  useEffect(() => {
+    setShowManualEntry(false);
+  }, [currentStory?.id, areVotesRevealed]);
+
   if (!currentStory) {
     return (
       <div className="text-center space-y-4 animate-fade-in">
@@ -139,28 +179,54 @@ const TableSurfaceContent: React.FC<{
         </div>
 
         {isScrumMaster && (
-          <div className="pt-4 border-t border-slate-700/50 w-full space-y-4">
-            <p className="text-xs text-slate-400 uppercase font-bold tracking-wider">Finalize Points</p>
-            <div className="flex flex-wrap justify-center gap-2">
-              {POINTING_SCALE.map(pts => (
-                <button
-                  key={pts}
-                  onClick={() => onFinalize(pts)}
-                  className={`
-                    px-3 py-2 rounded-lg text-sm font-bold transition-all border border-slate-600
-                    ${consensusValues.includes(String(pts)) 
-                        ? 'bg-indigo-600 border-indigo-400 text-white shadow-[0_0_10px_rgba(99,102,241,0.4)] transform scale-110 mx-1' 
-                        : 'bg-slate-700 hover:bg-slate-600 text-slate-200 hover:text-white hover:border-slate-400'}
-                  `}
-                >
-                  {pts}
-                </button>
-              ))}
+          <div className="pt-6 border-t border-slate-700/50 w-full flex flex-col items-center gap-4 animate-fade-in">
+            
+            <div className="flex flex-wrap justify-center gap-3 w-full">
+                {/* Primary Actions: Accept Consensus */}
+                {consensusValues.length > 0 && consensusValues.map(val => (
+                     <Button 
+                        key={val} 
+                        onClick={() => onFinalize(val)}
+                        className="bg-emerald-600 hover:bg-emerald-500 text-white border-0 shadow-[0_0_15px_rgba(16,185,129,0.4)] px-6 py-3 text-lg font-bold"
+                     >
+                        Accept {val}
+                     </Button>
+                ))}
+                
+                {/* Secondary: Revote */}
+                <Button variant="secondary" onClick={onReset} className="border-slate-600">
+                    ↻ Revote
+                </Button>
             </div>
-            <div className="flex justify-center mt-2">
-              <Button size="sm" variant="outline" onClick={onReset} className="text-slate-400 hover:text-white border-slate-700 hover:border-slate-500">
-                Start Revote
-              </Button>
+
+            {/* Manual Override Toggle */}
+            <div className="flex flex-col items-center gap-2 w-full">
+                <button 
+                    onClick={() => setShowManualEntry(!showManualEntry)}
+                    className="text-xs text-slate-400 hover:text-indigo-400 flex items-center gap-1 transition-colors"
+                >
+                    {showManualEntry ? 'Hide options' : 'More options...'}
+                    <svg className={`w-3 h-3 transition-transform ${showManualEntry ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                </button>
+
+                {showManualEntry && (
+                    <div className="flex flex-wrap justify-center gap-2 p-3 bg-slate-900/50 rounded-xl border border-slate-700/50 w-full animate-fade-in">
+                        {POINTING_SCALE.map(pts => (
+                            <button
+                                key={pts}
+                                onClick={() => onFinalize(pts)}
+                                className={`
+                                    w-10 h-10 rounded-lg text-sm font-bold transition-all border
+                                    ${consensusValues.includes(String(pts))
+                                        ? 'bg-indigo-600 border-indigo-400 text-white shadow-lg'
+                                        : 'bg-slate-800 border-slate-600 text-slate-300 hover:bg-slate-700 hover:border-slate-500'}
+                                `}
+                            >
+                                {pts}
+                            </button>
+                        ))}
+                    </div>
+                )}
             </div>
           </div>
         )}
@@ -302,7 +368,7 @@ const PokerTable: React.FC<PokerTableProps> = ({
         onClick={() => setShowGameHub(true)}
         className="absolute z-40 bg-indigo-600 hover:bg-indigo-500 text-white rounded-full flex items-center justify-center shadow-lg transition-transform hover:rotate-12 hover:scale-110
                    md:top-4 md:right-4 md:w-10 md:h-10
-                   bottom-20 right-4 w-12 h-12 md:hidden" // Adjusted mobile position to avoid overlap
+                   bottom-20 right-4 w-12 h-12 md:hidden"
         title="Arcade Mode"
       >
         <span className="text-xl">🎮</span>
@@ -312,6 +378,7 @@ const PokerTable: React.FC<PokerTableProps> = ({
       {/* =================================================================================
           MOBILE LAYOUT (< md)
           Vertical scrollable layout: Controls -> Table Card -> User Grid
+          UPDATED: Grid items are now vertically stacked with no overlap to prevent blocking.
          ================================================================================= */}
       <div className="md:hidden flex flex-col h-full w-full overflow-y-auto p-4 pb-32 scrollbar-hide">
         
@@ -326,11 +393,8 @@ const PokerTable: React.FC<PokerTableProps> = ({
              canControl={isScrumMaster} 
           />
           
-          <div className="flex flex-wrap justify-end gap-1 max-w-[50%]">
-             {REACTION_EMOJIS.slice(0, 5).map(emoji => (
-                 <button key={emoji} onClick={() => handleReaction(emoji)} className="w-8 h-8 bg-slate-800/80 rounded-full flex items-center justify-center shadow-sm border border-slate-700 active:scale-90 transition-transform">{emoji}</button>
-             ))}
-             <button onClick={() => handleReaction(WOW_EMOJI)} className="w-8 h-8 bg-slate-800/80 rounded-full flex items-center justify-center shadow-sm border border-slate-700 active:scale-90 transition-transform">{WOW_EMOJI}</button>
+          <div className="flex flex-col items-end gap-1 relative z-50">
+             <ReactionBar onReaction={handleReaction} />
           </div>
         </div>
 
@@ -347,37 +411,43 @@ const PokerTable: React.FC<PokerTableProps> = ({
            />
         </div>
 
-        {/* 3. User Grid (3 Columns) */}
-        <div className="grid grid-cols-3 gap-3">
+        {/* 3. User Grid (3 Columns) - STACKED LAYOUT */}
+        <div className="grid grid-cols-3 gap-3 p-2">
            {users.map(user => {
               const hasVoted = currentStory?.votes?.[user.id] !== undefined;
               const voteValue = currentStory?.votes?.[user.id];
               
               return (
-                <div key={user.id} className="flex flex-col items-center gap-2 p-2 rounded-lg bg-slate-800/30 border border-slate-700/50">
-                   <div className="relative">
-                      {/* The Card (or placeholder slot) */}
-                      <div className={`transition-all duration-300 transform ${hasVoted ? 'translate-y-0' : 'translate-y-1 opacity-50 grayscale'}`}>
-                          {hasVoted ? (
-                            <Card 
-                              value={voteValue || ''} 
-                              faceDown={!areVotesRevealed}
-                              revealed={areVotesRevealed}
-                              size="sm" // Small for mobile grid
-                              theme={user.cardTheme}
-                            />
-                          ) : (
-                            // Placeholder for empty slot
-                            <div className="w-8 h-12 rounded-md border-2 border-dashed border-slate-600 bg-slate-800/50"></div>
-                          )}
-                      </div>
-                      {/* Avatar Badge */}
-                      <div className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full bg-slate-700 border border-slate-500 flex items-center justify-center text-sm shadow-md z-10">
+                <div key={user.id} className="flex flex-col items-center gap-2 p-3 rounded-xl bg-slate-800/40 border border-slate-700/50 shadow-sm relative overflow-hidden group">
+                   
+                   {/* Voting Status Background Highlight */}
+                   {hasVoted && !areVotesRevealed && (
+                       <div className="absolute inset-0 bg-indigo-500/5 animate-pulse pointer-events-none" />
+                   )}
+                   
+                   {/* Card Area - No Overlap */}
+                   <div className={`relative z-10 transition-all duration-300 h-14 flex items-center justify-center ${hasVoted ? 'opacity-100 transform scale-100' : 'opacity-40 grayscale transform scale-95'}`}>
+                      {hasVoted ? (
+                        <Card 
+                          value={voteValue || ''} 
+                          faceDown={!areVotesRevealed}
+                          revealed={areVotesRevealed}
+                          size="sm" 
+                          theme={user.cardTheme}
+                        />
+                      ) : (
+                        <div className="w-8 h-12 rounded-md border-2 border-dashed border-slate-600 bg-slate-800/50"></div>
+                      )}
+                   </div>
+
+                   {/* User Identity - Below Card */}
+                   <div className="flex items-center gap-1.5 w-full justify-center z-10">
+                      <div className="w-6 h-6 rounded-full bg-slate-700 border border-slate-500 flex items-center justify-center text-xs shadow-md shrink-0">
                          {user.avatar}
                       </div>
-                   </div>
-                   <div className="text-[10px] text-slate-300 font-medium truncate w-full text-center px-1">
-                      {user.name}
+                      <div className="text-[10px] text-slate-300 font-medium truncate max-w-[4rem]">
+                         {user.name}
+                      </div>
                    </div>
                 </div>
               );
@@ -388,7 +458,9 @@ const PokerTable: React.FC<PokerTableProps> = ({
 
       {/* =================================================================================
           DESKTOP LAYOUT (>= md)
-          Absolute positioning with circular table metaphor
+          Absolute positioning with circular table metaphor.
+          UPDATED: Uses two concentric circles. Inner for cards, Outer for users.
+          This ensures cards are closer to the "table" and users are at the "seats", preventing overlap.
          ================================================================================= */}
       <div className="hidden md:flex w-full h-full items-center justify-center relative">
           
@@ -403,11 +475,8 @@ const PokerTable: React.FC<PokerTableProps> = ({
                     onAddMinutes={onAddMinutes}
                     canControl={isScrumMaster} 
                 />
-                <div className="flex gap-1 bg-slate-800/60 backdrop-blur-sm p-1.5 rounded-full border border-slate-700/50 shadow-lg transition-all hover:scale-105">
-                    {REACTION_EMOJIS.map(emoji => (
-                        <button key={emoji} onClick={() => handleReaction(emoji)} className="w-8 h-8 flex items-center justify-center text-lg hover:bg-white/10 rounded-full transition-colors active:scale-90">{emoji}</button>
-                    ))}
-                </div>
+                
+                <ReactionBar onReaction={handleReaction} />
             </div>
           </div>
 
@@ -427,46 +496,61 @@ const PokerTable: React.FC<PokerTableProps> = ({
                   />
               </div>
 
-              {/* Seats (Users) */}
+              {/* Seats (Outer Circle) & Cards (Inner Circle) */}
               {users.map((user, index) => {
                   const totalUsers = users.length;
                   const angleStep = (2 * Math.PI) / totalUsers;
                   const angle = angleStep * index + Math.PI / 2; 
-                  const radiusX = 42; 
-                  const radiusY = 42; 
-                  const left = 50 + radiusX * Math.cos(angle);
-                  const top = 50 + radiusY * Math.sin(angle);
+                  
+                  // Seat Position (Outer Circle - Users)
+                  const seatRadiusX = 42; 
+                  const seatRadiusY = 42; 
+                  const seatLeft = 50 + seatRadiusX * Math.cos(angle);
+                  const seatTop = 50 + seatRadiusY * Math.sin(angle);
+
+                  // Card Position (Inner Circle - Cards)
+                  const cardRadiusX = 28; // Closer to center
+                  const cardRadiusY = 30; 
+                  const cardLeft = 50 + cardRadiusX * Math.cos(angle);
+                  const cardTop = 50 + cardRadiusY * Math.sin(angle);
+
                   const hasVoted = currentStory?.votes?.[user.id] !== undefined;
                   const voteValue = currentStory?.votes?.[user.id];
 
                   return (
-                      <div 
-                          key={user.id}
-                          className="absolute w-24 h-24 flex flex-col items-center justify-center transition-all duration-500"
-                          style={{ left: `${left}%`, top: `${top}%`, transform: 'translate(-50%, -50%)' }}
-                      >
-                          {/* Card */}
-                          <div className={`absolute -top-10 transition-all duration-500 z-10 ${hasVoted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
+                      <React.Fragment key={user.id}>
+                          {/* 1. The Card (Inner Circle) - Rendered absolutely */}
+                          <div 
+                              className={`absolute z-20 transition-all duration-500 flex justify-center items-center ${hasVoted ? 'opacity-100 scale-100' : 'opacity-0 scale-50'}`}
+                              style={{ left: `${cardLeft}%`, top: `${cardTop}%`, transform: 'translate(-50%, -50%)' }}
+                          >
                               <Card 
                                   value={voteValue || ''} 
                                   faceDown={!areVotesRevealed}
                                   revealed={areVotesRevealed}
-                                  size="sm"
+                                  size="md"
                                   theme={user.cardTheme} 
                               />
                           </div>
-                          {/* Avatar */}
-                          <div className={`relative w-14 h-14 rounded-full border-2 flex items-center justify-center text-2xl bg-slate-800 shadow-lg z-20 transition-colors ${hasVoted ? 'border-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.5)]' : 'border-slate-600'} ${!user.isOnline ? 'grayscale opacity-50' : ''}`}>
-                              {user.avatar}
-                              {user.role === UserRole.SCRUM_MASTER && (
-                                  <div className="absolute -top-2 -right-2 bg-amber-500 text-white text-[10px] p-1 rounded-full shadow-sm border border-slate-900">👑</div>
-                              )}
+
+                          {/* 2. The User Seat (Outer Circle) */}
+                          <div 
+                              className="absolute w-24 flex flex-col items-center justify-center z-30 transition-all duration-500"
+                              style={{ left: `${seatLeft}%`, top: `${seatTop}%`, transform: 'translate(-50%, -50%)' }}
+                          >
+                              {/* Avatar */}
+                              <div className={`relative w-14 h-14 rounded-full border-2 flex items-center justify-center text-2xl bg-slate-800 shadow-lg transition-colors ${hasVoted ? 'border-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.5)]' : 'border-slate-600'} ${!user.isOnline ? 'grayscale opacity-50' : ''}`}>
+                                  {user.avatar}
+                                  {user.role === UserRole.SCRUM_MASTER && (
+                                      <div className="absolute -top-2 -right-2 bg-amber-500 text-white text-[10px] p-1 rounded-full shadow-sm border border-slate-900">👑</div>
+                                  )}
+                              </div>
+                              {/* Name Tag */}
+                              <div className="mt-2 px-2 py-0.5 bg-slate-900/90 rounded text-xs font-medium text-slate-300 whitespace-nowrap truncate max-w-[120px] border border-slate-700 shadow-sm">
+                                  {user.name}
+                              </div>
                           </div>
-                          {/* Name Tag */}
-                          <div className="mt-1 px-2 py-0.5 bg-slate-900/80 rounded text-xs font-medium text-slate-300 whitespace-nowrap truncate max-w-[100px] border border-slate-700">
-                              {user.name}
-                          </div>
-                      </div>
+                      </React.Fragment>
                   );
               })}
           </div>
