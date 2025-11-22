@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useRef, useMemo } from 'react';
 import Login from './components/Login';
 import PokerTable from './components/PokerTable';
@@ -88,7 +89,6 @@ const App: React.FC = () => {
       prev.forEach(u => {
           if (!curr.find(c => c.id === u.id)) {
               if (u.id !== currentUser?.id) { // Don't notify self
-                  // Disconnect toast: persistent (closable) but auto-dismisses after 1 minute (60000ms)
                   addToast(`${u.name} disconnected`, 'error', true, 60000);
                   playSound.leave();
               }
@@ -301,6 +301,7 @@ const App: React.FC = () => {
                 onStartTimer={() => dispatch({ type: 'START_TIMER' })}
                 onPauseTimer={() => dispatch({ type: 'PAUSE_TIMER' })}
                 onResetTimer={() => dispatch({ type: 'RESET_TIMER' })}
+                onAddMinutes={(m) => dispatch({ type: 'ADD_TIME', payload: m * 60000 })}
                 onReveal={() => dispatch({ type: 'REVEAL_VOTES' })}
                 onReset={() => dispatch({ type: 'RESET_VOTES' })}
                 lastReaction={state.lastReaction}

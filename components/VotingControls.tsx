@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { POINTING_SCALE } from '../constants';
 import Card from './Card';
@@ -29,6 +30,7 @@ const VotingControls: React.FC<VotingControlsProps> = ({ currentStory, currentUs
             isSelected={selectedVote === value}
             onClick={() => onVote(value)}
             size="md"
+            theme={currentUser.cardTheme} // Pass the user's chosen theme
           />
         ))}
       </div>

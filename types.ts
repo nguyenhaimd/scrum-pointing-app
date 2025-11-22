@@ -14,6 +14,7 @@ export interface User {
   lastHeartbeat: number;
   room: string;
   avatar: string;
+  cardTheme?: string; // New field for card customization
   deviceType: 'mobile' | 'tablet' | 'desktop';
 }
 
@@ -85,5 +86,6 @@ export type Action =
   | { type: 'START_TIMER' }
   | { type: 'PAUSE_TIMER' }
   | { type: 'RESET_TIMER' }
+  | { type: 'ADD_TIME'; payload: number } // ms
   | { type: 'SEND_REACTION'; payload: { emoji: string; userId: string } }
   | { type: 'END_SESSION' };

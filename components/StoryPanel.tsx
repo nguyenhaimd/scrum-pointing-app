@@ -90,12 +90,51 @@ const StoryPanel: React.FC<StoryPanelProps> = ({
     onClearQueue?.();
   };
 
+  const handleExportCSV = () => {
+      if (stories.length === 0) return;
+
+      // CSV Header
+      const headers = ["Title", "Description", "Status", "Final Points", "Vote Count"];
+      
+      // CSV Rows
+      const rows = stories.map(s => [
+          `"${s.title.replace(/"/g, '""')}"`, // Escape double quotes
+          `"${(s.description || '').replace(/"/g, '""')}"`,
+          s.status,
+          s.finalPoints || '-',
+          Object.keys(s.votes || {}).length
+      ]);
+
+      const csvContent = [
+          headers.join(','),
+          ...rows.map(r => r.join(','))
+      ].join('\n');
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', `poker_results_${new Date().toISOString().slice(0,10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+  };
+
   return (
     <div className="bg-slate-800 border-b border-slate-700 md:border-b-0 md:border-r md:w-80 flex flex-col h-full transition-all relative">
       <div className="p-4 border-b border-slate-700 flex justify-between items-center shrink-0">
         <h2 className="font-semibold text-slate-200">Stories</h2>
         <div className="flex items-center gap-2">
              <span className="text-xs bg-slate-700 px-2 py-1 rounded text-slate-400">{stories.length} Total</span>
+             {stories.length > 0 && (
+                 <button 
+                    onClick={handleExportCSV}
+                    className="p-1.5 text-slate-400 hover:text-indigo-400 hover:bg-slate-700 rounded transition-colors"
+                    title="Export results to CSV"
+                 >
+                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                 </button>
+             )}
         </div>
       </div>
 

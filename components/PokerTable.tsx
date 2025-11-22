@@ -1,3 +1,4 @@
+
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 // @ts-ignore
 import confetti from 'canvas-confetti';
@@ -6,9 +7,9 @@ import Card from './Card';
 import Button from './Button';
 import Timer from './Timer';
 import ReactionOverlay from './ReactionOverlay';
-import TicTacToe from './TicTacToe';
 import { POINTING_SCALE, REACTION_EMOJIS, WOW_EMOJI } from '../constants';
 import { playSound } from '../services/soundService';
+import GameHub from './TicTacToe';
 
 interface PokerTableProps {
   users: User[];
@@ -23,6 +24,7 @@ interface PokerTableProps {
   onStartTimer: () => void;
   onPauseTimer: () => void;
   onResetTimer: () => void;
+  onAddMinutes: (minutes: number) => void;
   lastReaction: Reaction | null;
   onReaction: (emoji: string) => void;
 }
@@ -35,16 +37,17 @@ const PokerTable: React.FC<PokerTableProps> = ({
   onNext,
   onNextStory,
   onReset,
-  currentUserRole: currentUserRole,
+  currentUserRole,
   timer,
   onStartTimer,
   onPauseTimer,
   onResetTimer,
+  onAddMinutes,
   lastReaction,
   onReaction
 }) => {
   const [manualFinalScore, setManualFinalScore] = useState<string | number | null>(null);
-  const [showGame, setShowGame] = useState(false);
+  const [showGameHub, setShowGameHub] = useState(false);
   const prevRevealed = useRef(areVotesRevealed);
   
   // Trigger confetti and sound when votes revealed
@@ -69,342 +72,276 @@ const PokerTable: React.FC<PokerTableProps> = ({
                 particleCount: 150,
                 spread: 70,
                 origin: { y: 0.6 },
-                colors: ['#6366f1', '#8b5cf6', '#ec4899'],
-                zIndex: 9999 // Force on top
-            });
-        } else {
-            // Simple Reveal Pop
-            confetti({
-                particleCount: 50,
-                spread: 50,
-                origin: { y: 0.6 },
-                gravity: 1.2,
-                scalar: 0.8,
-                colors: ['#ffffff', '#94a3b8', '#64748b'],
-                zIndex: 9999 // Force on top
+                colors: ['#6366f1', '#8b5cf6', '#ec4899']
             });
         }
     }
     prevRevealed.current = areVotesRevealed;
   }, [areVotesRevealed, currentStory]);
 
-  // Listen for remote reactions to play sound for everyone
-  useEffect(() => {
-    if (lastReaction) {
-        const isRecent = Date.now() - lastReaction.timestamp < 2000;
-        // We perform the sound effect logic here if needed, currently handled by click for sender
-    }
-  }, [lastReaction]);
-
-  // Stats Calculation
+  // Calculate average/consensus
   const stats = useMemo(() => {
-      if (!currentStory?.votes) return null;
-      const votes = Object.values(currentStory.votes).filter(v => v !== null);
-      if (votes.length === 0) return null;
+    if (!currentStory?.votes) return { average: 0, agreement: 0, counts: {} };
+    
+    const votes = Object.values(currentStory.votes).filter(v => v !== null && v !== '?' && v !== '☕');
+    const numericVotes = votes.map(v => Number(v)).filter(n => !isNaN(n));
+    
+    const counts: Record<string, number> = {};
+    Object.values(currentStory.votes).forEach(v => {
+        if (v !== null) {
+            const s = String(v);
+            counts[s] = (counts[s] || 0) + 1;
+        }
+    });
 
-      // Mode (Can be '☕' or '?')
-      const counts: Record<string, number> = {};
-      votes.forEach(v => counts[String(v)] = (counts[String(v)] || 0) + 1);
-      
-      const sortedCounts = Object.entries(counts).sort((a, b) => b[1] - a[1]);
-      
-      // Determine consensus mode(s) - handle ties
-      let mode = '-';
-      let agreement = 0;
+    if (numericVotes.length === 0) return { average: 0, agreement: 0, counts };
 
-      if (sortedCounts.length > 0) {
-          const maxVotes = sortedCounts[0][1];
-          const winners = sortedCounts.filter(([_, count]) => count === maxVotes).map(([val]) => val);
-          mode = winners.join(' & ');
-          
-          // Calculate agreement percentage
-          agreement = Math.round((maxVotes / votes.length) * 100);
-      }
+    const sum = numericVotes.reduce((a, b) => a + b, 0);
+    const avg = sum / numericVotes.length;
 
-      return { mode, distribution: sortedCounts, totalVotes: votes.length, agreement };
+    // Calculate agreement % (max count / total votes)
+    const maxCount = Math.max(...Object.values(counts));
+    const totalVotes = Object.values(currentStory.votes).filter(v => v !== null).length;
+    const agreement = totalVotes ? Math.round((maxCount / totalVotes) * 100) : 0;
+
+    return { average: avg.toFixed(1), agreement, counts };
   }, [currentStory?.votes]);
 
-  const handleFinish = () => {
-      // If manual score is set, use it. Otherwise try to parse the mode.
-      const defaultScore = stats?.mode && !stats.mode.includes('&') ? stats.mode : '0';
-      const final = manualFinalScore || defaultScore;
-      onNext(final);
-      setManualFinalScore(null);
+  const handleFinalize = (val: string | number) => {
+    onNext(val);
+    setManualFinalScore(null);
   };
-  
+
+  const handleReaction = (emoji: string) => {
+      if (emoji === WOW_EMOJI) {
+          playSound.wow();
+      } else {
+          playSound.reaction();
+      }
+      onReaction(emoji);
+  };
+
   const isScrumMaster = currentUserRole === UserRole.SCRUM_MASTER;
-  const isCoffeeTime = areVotesRevealed && stats?.mode === '☕';
 
   return (
-    <div className="flex flex-col h-full bg-slate-900 relative overflow-y-auto overflow-x-hidden">
-       <ReactionOverlay lastReaction={lastReaction} />
-       
-       {/* Top Bar: Timer & Controls */}
-       <div className="flex flex-col sm:flex-row justify-between items-center p-2 sm:p-4 z-10 gap-3 sm:gap-0 shrink-0">
-          <div className="flex gap-2 scale-90 sm:scale-100 origin-left">
-             <Timer 
+    <div className="flex-1 relative bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-slate-800 via-slate-900 to-slate-950 flex flex-col items-center justify-center overflow-hidden p-4">
+      {/* Reaction Overlay */}
+      <ReactionOverlay lastReaction={lastReaction} />
+
+      {/* Game Hub Overlay */}
+      {showGameHub && <GameHub onClose={() => setShowGameHub(false)} />}
+
+      {/* Top Bar: Timer & Reaction Bar */}
+      <div className="absolute top-4 left-0 right-0 flex justify-center items-start px-4 pointer-events-none z-30">
+          <div className="flex flex-col items-center gap-4 pointer-events-auto">
+            <Timer 
                 timer={timer} 
                 onStart={onStartTimer} 
                 onPause={onPauseTimer} 
                 onReset={onResetTimer}
-                canControl={isScrumMaster}
-             />
-             <button
-               onClick={() => setShowGame(true)}
-               className="p-2 bg-slate-800/50 hover:bg-slate-700 border border-slate-700 rounded-full text-slate-300 hover:text-indigo-400 transition-colors flex items-center justify-center"
-               title="Arcade"
-              >
-                <span className="text-2xl">🕹️</span>
-             </button>
+                onAddMinutes={onAddMinutes}
+                canControl={isScrumMaster} 
+            />
+            
+            {/* Reaction Bar */}
+            <div className="flex gap-1 bg-slate-800/60 backdrop-blur-sm p-1.5 rounded-full border border-slate-700/50 shadow-lg transition-all hover:scale-105">
+                {REACTION_EMOJIS.map(emoji => (
+                    <button
+                        key={emoji}
+                        onClick={() => handleReaction(emoji)}
+                        className="w-8 h-8 flex items-center justify-center text-lg hover:bg-white/10 rounded-full transition-colors active:scale-90"
+                    >
+                        {emoji}
+                    </button>
+                ))}
+            </div>
           </div>
-          
-          {/* Reaction Bar */}
-          <div className="flex gap-1 bg-slate-800/50 p-1 rounded-full border border-slate-700 backdrop-blur scale-90 sm:scale-100 origin-right overflow-x-auto max-w-full scrollbar-hide">
-             {REACTION_EMOJIS.map(emoji => (
-                 <button
-                   key={emoji}
-                   onClick={() => {
-                       onReaction(emoji);
-                       if (emoji === WOW_EMOJI) {
-                           playSound.wow();
-                       } else {
-                           playSound.reaction();
-                       }
-                   }}
-                   className="w-8 h-8 flex items-center justify-center text-lg hover:bg-slate-700 rounded-full transition-transform hover:scale-110 active:scale-90"
-                 >
-                   {emoji}
-                 </button>
-             ))}
-          </div>
-       </div>
+      </div>
 
-       {/* Main Table Area */}
-       <div className="flex-1 flex flex-col items-center justify-start pt-2 sm:pt-4 pb-24 sm:pb-20 px-2 sm:px-4 gap-4 sm:gap-6">
-           
-           {/* Active Story Details (Integrated into flow) */}
-           {currentStory && !isCoffeeTime && (
-               <div className="w-full max-w-2xl bg-slate-800/40 border border-slate-700/50 rounded-xl p-3 sm:p-4 text-center animate-fade-in">
-                   <h3 className="text-lg sm:text-xl font-bold text-white leading-tight">{currentStory.title}</h3>
-                   {currentStory.description && (
-                       <p className="text-xs sm:text-sm text-slate-400 mt-2 max-w-prose mx-auto line-clamp-3">
-                           {currentStory.description}
-                       </p>
-                   )}
-               </div>
-           )}
+      {/* Floating Action Button for Games */}
+      <button 
+        onClick={() => setShowGameHub(true)}
+        className="absolute top-4 right-4 z-30 w-10 h-10 bg-indigo-600 hover:bg-indigo-500 text-white rounded-full flex items-center justify-center shadow-lg transition-transform hover:rotate-12 hover:scale-110"
+        title="Arcade Mode"
+      >
+        <span className="text-xl">🎮</span>
+      </button>
 
-           {/* Center Status / Results */}
-           <div className="w-full max-w-3xl min-h-[100px] sm:min-h-[120px] flex flex-col items-center justify-center shrink-0">
-               {!currentStory ? (
-                   <div className="text-slate-500 text-lg sm:text-xl animate-pulse">Waiting for story...</div>
-               ) : areVotesRevealed && stats ? (
-                   isCoffeeTime ? (
-                        /* Special Coffee Break View */
-                        <div className="w-full bg-amber-900/30 backdrop-blur-md border border-amber-500/50 rounded-2xl p-6 shadow-2xl animate-fade-in flex flex-col items-center justify-center text-center">
-                             <div className="text-6xl mb-4 animate-bounce">☕</div>
-                             <h2 className="text-2xl font-bold text-amber-200 mb-2">Coffee Break!</h2>
-                             <p className="text-amber-100/80 mb-4">The team has decided to take a break.</p>
+      {/* Center Table Area */}
+      <div className="relative w-full max-w-5xl aspect-video max-h-[80vh] flex items-center justify-center">
+        
+        {/* Table Surface */}
+        <div className="absolute inset-8 md:inset-16 bg-slate-800/50 rounded-[3rem] border-4 border-slate-700/50 shadow-[0_0_50px_rgba(0,0,0,0.3)] backdrop-blur-sm flex flex-col items-center justify-center p-8">
+             
+             {/* Center Content */}
+             {!currentStory ? (
+                 <div className="text-center space-y-4 animate-fade-in">
+                     <div className="text-6xl mb-2">🃏</div>
+                     <h2 className="text-2xl font-bold text-slate-300">Waiting for Story...</h2>
+                     {isScrumMaster && (
+                         <p className="text-slate-500">Select a story from the sidebar to begin.</p>
+                     )}
+                 </div>
+             ) : (
+                 <div className="w-full h-full flex flex-col items-center justify-center gap-6 animate-fade-in">
+                     
+                     {/* Results View */}
+                     {areVotesRevealed ? (
+                         <div className="text-center w-full max-w-md space-y-6">
+                             <div className="grid grid-cols-2 gap-4">
+                                 <div className="bg-slate-900/80 p-4 rounded-xl border border-indigo-500/30">
+                                     <div className="text-slate-400 text-xs uppercase font-bold">Average</div>
+                                     <div className="text-3xl font-bold text-indigo-400">{stats.average}</div>
+                                 </div>
+                                 <div className="bg-slate-900/80 p-4 rounded-xl border border-indigo-500/30">
+                                     <div className="text-slate-400 text-xs uppercase font-bold">Agreement</div>
+                                     <div className={`text-3xl font-bold ${stats.agreement >= 80 ? 'text-emerald-400' : 'text-yellow-400'}`}>
+                                         {stats.agreement}%
+                                     </div>
+                                 </div>
+                             </div>
+
+                             {/* Vote Distribution Bar */}
+                             <div className="flex h-4 w-full rounded-full overflow-hidden bg-slate-700">
+                                 {Object.entries(stats.counts).map(([val, count], idx) => {
+                                     // Generate consistent color based on value
+                                     const colors = ['bg-indigo-500', 'bg-purple-500', 'bg-pink-500', 'bg-rose-500', 'bg-orange-500', 'bg-amber-500'];
+                                     const color = colors[parseInt(val) % colors.length] || 'bg-blue-500';
+                                     const width = (count / Object.keys(currentStory.votes).length) * 100;
+                                     return (
+                                         <div key={val} className={`${color} h-full`} style={{ width: `${width}%` }} title={`${val}: ${count} votes`} />
+                                     );
+                                 })}
+                             </div>
+
                              {isScrumMaster && (
-                                 <Button onClick={onReset} className="bg-amber-600 hover:bg-amber-500 text-white border-amber-400">
-                                     Back to Work
+                                 <div className="pt-4 border-t border-slate-700/50 space-y-3">
+                                     <p className="text-sm text-slate-400 mb-2">Finalize Points:</p>
+                                     <div className="flex flex-wrap justify-center gap-2">
+                                         {POINTING_SCALE.map(pts => (
+                                             <button
+                                                 key={pts}
+                                                 onClick={() => handleFinalize(pts)}
+                                                 className="px-3 py-1 rounded bg-slate-700 hover:bg-indigo-600 text-slate-200 hover:text-white text-sm transition-colors"
+                                             >
+                                                 {pts}
+                                             </button>
+                                         ))}
+                                     </div>
+                                     <div className="flex justify-center gap-2 mt-4">
+                                        <Button size="sm" variant="secondary" onClick={onReset}>Revote</Button>
+                                     </div>
+                                 </div>
+                             )}
+                         </div>
+                     ) : (
+                         /* Voting In Progress View */
+                         <div className="text-center space-y-6">
+                             <div>
+                                <h3 className="text-xl text-slate-300 font-medium mb-2">Current Story</h3>
+                                <p className="text-2xl md:text-3xl font-bold text-white max-w-lg mx-auto leading-tight">
+                                    {currentStory.title}
+                                </p>
+                             </div>
+                             
+                             <div className="flex items-center justify-center gap-8">
+                                 <div className="flex flex-col items-center">
+                                     <div className="text-4xl font-bold text-indigo-400">
+                                         {Object.keys(currentStory.votes).length}
+                                     </div>
+                                     <div className="text-xs text-slate-500 uppercase tracking-wider mt-1">Votes Cast</div>
+                                 </div>
+                             </div>
+
+                             {isScrumMaster && (
+                                 <Button 
+                                    size="lg" 
+                                    onClick={onReveal}
+                                    disabled={Object.keys(currentStory.votes).length === 0}
+                                    className="shadow-[0_0_20px_rgba(79,70,229,0.4)] animate-pulse hover:animate-none"
+                                 >
+                                     Reveal Votes
                                  </Button>
                              )}
-                        </div>
-                   ) : (
-                       /* Enhanced Stats View */
-                       <div className="w-full bg-slate-800/80 backdrop-blur-md border border-indigo-500/30 rounded-2xl p-6 shadow-2xl animate-fade-in">
-                           
-                           {/* Agreement Meter */}
-                           <div className="flex items-center gap-3 mb-6">
-                                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Agreement</span>
-                                <div className="flex-1 h-3 bg-slate-700 rounded-full overflow-hidden relative">
-                                    <div 
-                                        className={`h-full transition-all duration-1000 ease-out rounded-full ${stats.agreement === 100 ? 'bg-emerald-500' : stats.agreement > 70 ? 'bg-indigo-500' : 'bg-yellow-500'}`}
-                                        style={{ width: `${stats.agreement}%` }}
-                                    ></div>
-                                </div>
-                                <span className={`text-sm font-bold ${stats.agreement === 100 ? 'text-emerald-400' : 'text-white'}`}>
-                                    {stats.agreement}%
-                                </span>
-                           </div>
+                             
+                             {!isScrumMaster && (
+                                 <p className="text-slate-500 animate-pulse">
+                                     {Object.keys(currentStory.votes).length > 0 ? "Waiting for reveal..." : "Cast your vote below..."}
+                                 </p>
+                             )}
+                         </div>
+                     )}
+                 </div>
+             )}
+        </div>
 
-                           <div className="flex flex-col md:flex-row items-start justify-between gap-6">
-                               {/* Primary Consensus Result */}
-                               <div className="w-full md:w-auto flex flex-col items-center justify-center bg-slate-900/50 p-4 rounded-xl border border-slate-700/50 min-w-[120px]">
-                                   <div className="text-xs text-slate-400 uppercase tracking-wider mb-2">Consensus</div>
-                                   <div className="text-5xl font-bold text-white drop-shadow-[0_0_10px_rgba(99,102,241,0.5)]">
-                                       {stats.mode}
-                                   </div>
-                               </div>
+        {/* Seats (Users) */}
+        {users.map((user, index) => {
+            // Calculate position around the circle
+            const totalUsers = users.length;
+            // Offset angle so the first user is at the bottom center (closer to screen)
+            const angleStep = (2 * Math.PI) / totalUsers;
+            const angle = angleStep * index + Math.PI / 2; 
+            
+            // Radius percentages
+            const radiusX = 42; // % of container width
+            const radiusY = 42; // % of container height
 
-                               {/* Visual Distribution Cards */}
-                               <div className="flex-1 w-full grid grid-cols-3 sm:flex gap-2 sm:gap-3 justify-center md:justify-end items-end h-full">
-                                   {stats.distribution.map(([val, count], index) => {
-                                       const percentage = count / stats.totalVotes;
-                                       const isWinner = val === stats.mode;
-                                       
-                                       return (
-                                           <div key={val} className="flex flex-col items-center gap-1 group">
-                                               <div className="relative">
-                                                    <div 
-                                                        className={`
-                                                            flex items-center justify-center rounded-lg font-bold transition-all
-                                                            ${isWinner 
-                                                                ? 'w-12 h-16 sm:w-14 sm:h-20 text-xl sm:text-2xl bg-indigo-600 text-white shadow-lg scale-105 z-10 border-2 border-indigo-400' 
-                                                                : 'w-10 h-14 sm:w-12 sm:h-16 text-sm sm:text-base bg-slate-700 text-slate-300 border border-slate-600 opacity-80'
-                                                            }
-                                                        `}
-                                                    >
-                                                        {val}
-                                                    </div>
-                                                    <div className={`
-                                                        absolute -top-2 -right-2 w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center text-xs font-bold border-2 border-slate-800
-                                                        ${isWinner ? 'bg-white text-indigo-600' : 'bg-slate-600 text-white'}
-                                                    `}>
-                                                        {count}
-                                                    </div>
-                                               </div>
-                                               {/* Bar Visual */}
-                                               <div className="w-1.5 bg-slate-700 rounded-full h-12 sm:h-16 flex items-end overflow-hidden mt-1">
-                                                    <div 
-                                                        style={{ height: `${percentage * 100}%` }} 
-                                                        className={`w-full rounded-t-full ${isWinner ? 'bg-indigo-500' : 'bg-slate-500'}`}
-                                                    />
-                                               </div>
-                                           </div>
-                                       );
-                                   })}
-                               </div>
-                           </div>
+            const left = 50 + radiusX * Math.cos(angle);
+            const top = 50 + radiusY * Math.sin(angle);
 
-                           {/* SM Controls for Finishing */}
-                           {isScrumMaster && (
-                               <div className="mt-6 pt-4 border-t border-slate-700 flex flex-col sm:flex-row items-center justify-end gap-4">
-                                   <div className="flex items-center gap-2">
-                                       <span className="text-sm text-slate-300">Final Score:</span>
-                                       <div className="flex bg-slate-900 rounded-lg p-1 border border-slate-700 overflow-x-auto max-w-[200px] sm:max-w-none scrollbar-hide">
-                                           {POINTING_SCALE.filter(p => typeof p === 'number' || p === '0' || p === '?').map(p => (
-                                               <button
-                                                 key={p}
-                                                 onClick={() => setManualFinalScore(p)}
-                                                 className={`px-3 py-1 rounded text-xs sm:text-sm font-bold transition-colors ${
-                                                     (manualFinalScore || (stats.mode === String(p) ? p : null)) == p 
-                                                     ? 'bg-indigo-600 text-white' 
-                                                     : 'text-slate-400 hover:text-white hover:bg-slate-800'
-                                                 }`}
-                                               >
-                                                   {p}
-                                               </button>
-                                           ))}
-                                       </div>
-                                   </div>
-                                   <div className="flex gap-2 w-full sm:w-auto">
-                                       <Button size="sm" variant="secondary" onClick={onReset} className="flex-1 sm:flex-none">Re-Vote</Button>
-                                       <Button size="sm" onClick={handleFinish} className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-500 border-emerald-500">Complete</Button>
-                                   </div>
-                               </div>
-                           )}
-                       </div>
-                   )
-               ) : (
-                   /* Voting In Progress State */
-                   <div className="text-center">
-                       {/* Status Icon */}
-                       <div className="w-20 h-20 sm:w-24 sm:h-24 bg-slate-800 rounded-full flex items-center justify-center border-4 border-slate-700 mb-4 mx-auto shadow-[0_0_30px_rgba(99,102,241,0.1)]">
-                           <span className="text-2xl sm:text-3xl">🃏</span>
-                       </div>
-                       <h2 className="text-lg sm:text-xl font-semibold text-slate-200">
-                           {currentStory ? 'Voting in progress...' : 'Select a story'}
-                       </h2>
-                       {currentStory && (
-                           <p className="text-slate-400 text-xs sm:text-sm mt-1">
-                               {Object.keys(currentStory.votes || {}).length} votes cast
-                           </p>
-                       )}
-                       {isScrumMaster && currentStory && (
-                           <div className="mt-4">
-                               <Button onClick={onReveal} disabled={!currentStory.votes || Object.keys(currentStory.votes).length === 0}>
-                                   Reveal Cards
-                               </Button>
-                           </div>
-                       )}
-                   </div>
-               )}
-           </div>
+            const hasVoted = currentStory?.votes?.[user.id] !== undefined;
+            const voteValue = currentStory?.votes?.[user.id];
 
-           {/* Players Grid - 3 cols on mobile for better density */}
-           <div className="grid grid-cols-3 sm:flex sm:flex-wrap justify-center justify-items-center gap-x-2 gap-y-4 sm:gap-6 w-full max-w-5xl">
-               {users.map(user => {
-                   const vote = currentStory?.votes?.[user.id];
-                   const hasVoted = vote !== undefined && vote !== null;
-                   
-                   // Only Developers should have a "Thinking" placeholder. 
-                   // Others just show their presence unless they explicitly voted.
-                   const isVoter = user.role === UserRole.DEVELOPER;
-                   const showCardSlot = isVoter || hasVoted;
+            return (
+                <div 
+                    key={user.id}
+                    className="absolute w-20 h-20 md:w-24 md:h-24 flex flex-col items-center justify-center transition-all duration-500"
+                    style={{ 
+                        left: `${left}%`, 
+                        top: `${top}%`,
+                        transform: 'translate(-50%, -50%)' 
+                    }}
+                >
+                    {/* The Card (If Voted) */}
+                    <div className={`
+                        absolute -top-10 transition-all duration-500 z-10
+                        ${hasVoted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}
+                    `}>
+                        <Card 
+                            value={voteValue || ''} 
+                            faceDown={!areVotesRevealed}
+                            revealed={areVotesRevealed}
+                            size="sm"
+                            theme={user.cardTheme} // Apply user's custom theme
+                        />
+                    </div>
 
-                   return (
-                       <div key={user.id} className="relative group flex flex-col items-center w-full sm:w-auto">
-                           
-                           {/* The Card / Placeholder */}
-                           <div className={`
-                               relative transition-all duration-300 min-h-[80px] sm:min-h-[96px] flex items-center justify-center
-                               ${hasVoted && !areVotesRevealed ? '-translate-y-2' : ''}
-                           `}>
-                               {showCardSlot ? (
-                                    hasVoted ? (
-                                        <div className="relative">
-                                            <Card 
-                                                value={areVotesRevealed ? vote : ''} 
-                                                faceDown={!areVotesRevealed} 
-                                                revealed={areVotesRevealed}
-                                                size="md"
-                                            />
-                                            {/* VOTED CHECKMARK BADGE */}
-                                            {!areVotesRevealed && (
-                                                <div className="absolute -top-2 -right-2 bg-emerald-500 text-slate-900 rounded-full p-0.5 border-2 border-slate-900 shadow-lg animate-bounce z-10">
-                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
-                                                </div>
-                                            )}
-                                        </div>
-                                    ) : (
-                                        // Empty Slot for Developers
-                                        <div className="w-14 h-20 md:w-16 md:h-24 rounded-xl border-2 border-dashed border-slate-700 bg-slate-800/30 flex items-center justify-center">
-                                            <span className="text-xs text-slate-500 animate-pulse">Thinking</span>
-                                        </div>
-                                    )
-                               ) : (
-                                   // Non-voter visual (Just an icon/placeholder)
-                                   <div className="w-14 h-20 md:w-16 md:h-24 flex items-center justify-center opacity-40 text-4xl sm:text-5xl" title={user.role}>
-                                       {user.role === UserRole.SCRUM_MASTER ? '👨‍🍳' : 
-                                        user.role === UserRole.PRODUCT_OWNER ? '👑' : '👁️'}
-                                   </div>
-                               )}
-                           </div>
+                    {/* Avatar */}
+                    <div className={`
+                        relative w-12 h-12 md:w-14 md:h-14 rounded-full border-2 flex items-center justify-center text-2xl bg-slate-800 shadow-lg z-20 transition-colors
+                        ${hasVoted ? 'border-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.5)]' : 'border-slate-600'}
+                        ${!user.isOnline ? 'grayscale opacity-50' : ''}
+                    `}>
+                        {user.avatar}
+                        
+                        {/* Role Badge */}
+                        {user.role === UserRole.SCRUM_MASTER && (
+                            <div className="absolute -top-2 -right-2 bg-amber-500 text-white text-[10px] p-1 rounded-full shadow-sm border border-slate-900" title="Scrum Master">
+                                👑
+                            </div>
+                        )}
+                    </div>
 
-                           {/* User Info */}
-                           <div className="mt-2 sm:mt-3 flex flex-col items-center max-w-full w-full px-1">
-                               <div className={`
-                                   flex items-center justify-center gap-1.5 bg-slate-800/80 backdrop-blur px-2 py-1 rounded-full border shadow-sm w-full transition-colors duration-300
-                                   ${hasVoted ? 'border-emerald-500/50 bg-emerald-900/20' : 'border-slate-700'}
-                               `}>
-                                   <span className="text-xs sm:text-sm shrink-0">{user.avatar}</span>
-                                   <span className={`text-[10px] sm:text-xs font-medium truncate ${hasVoted ? 'text-emerald-300' : 'text-slate-400'}`}>
-                                       {user.name}
-                                   </span>
-                               </div>
-                               {/* Role Badge */}
-                               <span className="text-[9px] sm:text-[10px] text-slate-500 mt-0.5 truncate max-w-full px-1">{user.role}</span>
-                           </div>
-                       </div>
-                   );
-               })}
-           </div>
-       </div>
-       
-       {/* Mini Game Modal */}
-       {showGame && <TicTacToe onClose={() => setShowGame(false)} />}
+                    {/* Name Tag */}
+                    <div className="mt-1 px-2 py-0.5 bg-slate-900/80 rounded text-[10px] md:text-xs font-medium text-slate-300 whitespace-nowrap truncate max-w-[100px] border border-slate-700">
+                        {user.name}
+                    </div>
+                </div>
+            );
+        })}
+
+      </div>
     </div>
   );
 };

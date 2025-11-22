@@ -63,6 +63,7 @@ export const useAppStore = (currentUser: User | null) => {
                     role: value.role || UserRole.OBSERVER,
                     isOnline: !!value.isOnline,
                     avatar: value.avatar || '👤',
+                    cardTheme: value.cardTheme || 'classic',
                     deviceType: value.deviceType || 'desktop'
                 } as User;
             }
@@ -292,6 +293,14 @@ export const useAppStore = (currentUser: User | null) => {
              status: 'paused',
              startTime: null,
              accumulated: 0
+         });
+         break;
+      
+      case 'ADD_TIME':
+         // Simply add to accumulated time. This works regardless of paused/running state
+         // to offset the displayed time.
+         await db.ref(`${rootPath}/timer`).update({
+             accumulated: (state.timer.accumulated || 0) + action.payload
          });
          break;
 
