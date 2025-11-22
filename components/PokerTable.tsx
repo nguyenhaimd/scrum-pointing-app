@@ -84,7 +84,7 @@ const TableSurfaceContent: React.FC<{
 
   if (!currentStory) {
     return (
-      <div className="text-center space-y-4 animate-fade-in">
+      <div className="text-center space-y-4 animate-fade-in w-full h-full flex flex-col items-center justify-center">
         <div className="text-5xl md:text-6xl mb-2">🃏</div>
         <h2 className="text-xl md:text-2xl font-bold text-slate-300">Waiting for Story...</h2>
         {isScrumMaster && (
@@ -117,47 +117,42 @@ const TableSurfaceContent: React.FC<{
     });
 
     return (
-      <div className="text-center w-full max-w-md space-y-6 animate-fade-in flex flex-col items-center">
+      <div className="text-center w-full h-full flex flex-col items-center justify-center overflow-hidden animate-fade-in px-2">
         
         {/* Consensus Display */}
-        <div className="bg-slate-800/80 p-6 rounded-2xl border-2 border-indigo-500/50 shadow-[0_0_40px_rgba(99,102,241,0.25)] backdrop-blur-md w-full transform transition-all hover:scale-[1.02]">
-            <div className="text-indigo-300 text-xs uppercase font-bold tracking-widest mb-3">Team Consensus</div>
+        <div className="bg-slate-800/80 p-4 rounded-xl border-2 border-indigo-500/50 shadow-[0_0_20px_rgba(99,102,241,0.2)] backdrop-blur-md w-full max-w-sm transform transition-all mb-2 flex flex-col justify-center shrink-0">
+            <div className="text-indigo-300 text-[10px] uppercase font-bold tracking-widest mb-1">Team Consensus</div>
             
-            <div className="flex justify-center items-center gap-3 flex-wrap min-h-[5rem]">
+            <div className="flex justify-center items-center gap-2 flex-wrap min-h-[4rem]">
                 {consensusValues.length > 0 ? (
                     consensusValues.map((val, idx) => (
                         <div key={val} className="flex items-center">
-                            <span className="text-7xl md:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white to-slate-300 drop-shadow-sm">
+                            <span className="text-6xl md:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white to-slate-300 drop-shadow-sm">
                                 {val}
                             </span>
                             {idx < consensusValues.length - 1 && (
-                                <span className="text-4xl text-indigo-500/50 mx-2 font-light">&</span>
+                                <span className="text-3xl text-indigo-500/50 mx-2 font-light">&</span>
                             )}
                         </div>
                     ))
                 ) : (
-                    <span className="text-2xl text-slate-500 font-medium">No Votes Cast</span>
+                    <span className="text-xl text-slate-500 font-medium">No Votes</span>
                 )}
             </div>
             
-            <div className="mt-4 flex justify-center">
-                <div className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full border bg-slate-900/50 ${stats.agreement >= 80 ? 'border-emerald-500/30 text-emerald-400' : 'border-yellow-500/30 text-yellow-400'}`}>
-                    <span className="text-xs font-bold uppercase tracking-wide opacity-80">Agreement</span>
-                    <span className="text-sm font-bold">{stats.agreement}%</span>
+            <div className="mt-2 flex justify-center">
+                <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border bg-slate-900/50 ${stats.agreement >= 80 ? 'border-emerald-500/30 text-emerald-400' : 'border-yellow-500/30 text-yellow-400'}`}>
+                    <span className="text-[10px] font-bold uppercase tracking-wide opacity-80">Agreement</span>
+                    <span className="text-xs font-bold">{stats.agreement}%</span>
                 </div>
             </div>
         </div>
 
         {/* Vote Distribution Bar */}
-        <div className="w-full space-y-2 px-2">
-           <div className="flex justify-between text-[10px] uppercase font-bold text-slate-500 tracking-wider">
-              <span>Distribution</span>
-              <span>{Object.values(currentStory.votes).length} Total</span>
-           </div>
-           <div className="flex h-8 w-full rounded-lg overflow-hidden bg-slate-900 shadow-inner border border-slate-700/50">
+        <div className="w-full max-w-xs space-y-1 mb-3 shrink-0">
+           <div className="flex h-6 w-full rounded-md overflow-hidden bg-slate-900 shadow-inner border border-slate-700/50">
               {sortedDistribution.map(([val, count]) => {
                   const colors = ['bg-indigo-500', 'bg-purple-500', 'bg-pink-500', 'bg-rose-500', 'bg-orange-500', 'bg-amber-500'];
-                  // Deterministic color based on value string
                   const colorIdx = (val.charCodeAt(0) + (val.length > 1 ? val.charCodeAt(1) : 0)) % colors.length;
                   const color = colors[colorIdx];
                   
@@ -167,7 +162,7 @@ const TableSurfaceContent: React.FC<{
                   return (
                     <div 
                         key={val} 
-                        className={`${color} h-full flex items-center justify-center text-xs font-bold text-white transition-all duration-500 border-r border-slate-900/20 last:border-0`} 
+                        className={`${color} h-full flex items-center justify-center text-[10px] font-bold text-white border-r border-slate-900/20 last:border-0`} 
                         style={{ width: `${width}%` }} 
                         title={`${val}: ${count} votes`}
                     >
@@ -179,47 +174,45 @@ const TableSurfaceContent: React.FC<{
         </div>
 
         {isScrumMaster && (
-          <div className="pt-6 border-t border-slate-700/50 w-full flex flex-col items-center gap-4 animate-fade-in">
-            
-            <div className="flex flex-wrap justify-center gap-3 w-full">
-                {/* Primary Actions: Accept Consensus */}
+          <div className="w-full flex flex-col items-center gap-2 animate-fade-in shrink-0">
+            <div className="flex flex-wrap justify-center gap-2 w-full">
                 {consensusValues.length > 0 && consensusValues.map(val => (
                      <Button 
                         key={val} 
                         onClick={() => onFinalize(val)}
-                        className="bg-emerald-600 hover:bg-emerald-500 text-white border-0 shadow-[0_0_15px_rgba(16,185,129,0.4)] px-6 py-3 text-lg font-bold"
+                        size="sm"
+                        className="bg-emerald-600 hover:bg-emerald-500 text-white border-0 shadow-lg px-4 py-2 text-sm font-bold"
                      >
                         Accept {val}
                      </Button>
                 ))}
                 
-                {/* Secondary: Revote */}
-                <Button variant="secondary" onClick={onReset} className="border-slate-600">
+                <Button variant="secondary" onClick={onReset} size="sm" className="border-slate-600 py-2">
                     ↻ Revote
                 </Button>
             </div>
 
             {/* Manual Override Toggle */}
-            <div className="flex flex-col items-center gap-2 w-full">
+            <div className="flex flex-col items-center gap-1 w-full relative">
                 <button 
                     onClick={() => setShowManualEntry(!showManualEntry)}
-                    className="text-xs text-slate-400 hover:text-indigo-400 flex items-center gap-1 transition-colors"
+                    className="text-[10px] text-slate-400 hover:text-indigo-400 flex items-center gap-1 transition-colors"
                 >
-                    {showManualEntry ? 'Hide options' : 'More options...'}
+                    {showManualEntry ? 'Hide options' : 'More options'}
                     <svg className={`w-3 h-3 transition-transform ${showManualEntry ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
                 </button>
 
                 {showManualEntry && (
-                    <div className="flex flex-wrap justify-center gap-2 p-3 bg-slate-900/50 rounded-xl border border-slate-700/50 w-full animate-fade-in">
+                    <div className="absolute bottom-full mb-2 z-50 flex flex-wrap justify-center gap-1 p-2 bg-slate-900 rounded-xl border border-slate-600 shadow-xl w-64">
                         {POINTING_SCALE.map(pts => (
                             <button
                                 key={pts}
                                 onClick={() => onFinalize(pts)}
                                 className={`
-                                    w-10 h-10 rounded-lg text-sm font-bold transition-all border
+                                    w-8 h-8 rounded-md text-xs font-bold transition-all border
                                     ${consensusValues.includes(String(pts))
-                                        ? 'bg-indigo-600 border-indigo-400 text-white shadow-lg'
-                                        : 'bg-slate-800 border-slate-600 text-slate-300 hover:bg-slate-700 hover:border-slate-500'}
+                                        ? 'bg-indigo-600 border-indigo-400 text-white'
+                                        : 'bg-slate-800 border-slate-600 text-slate-300 hover:bg-slate-700'}
                                 `}
                             >
                                 {pts}
@@ -236,32 +229,32 @@ const TableSurfaceContent: React.FC<{
 
   // Voting In Progress
   return (
-    <div className="text-center space-y-4 md:space-y-6 w-full">
-      <div>
-        <h3 className="text-lg md:text-xl text-slate-300 font-medium mb-1 md:mb-2">Current Story</h3>
-        <p className="text-xl md:text-3xl font-bold text-white max-w-lg mx-auto leading-tight line-clamp-3">
+    <div className="text-center w-full h-full flex flex-col items-center justify-center space-y-3 md:space-y-4">
+      <div className="max-w-md w-full">
+        <h3 className="text-base md:text-lg text-slate-400 font-medium mb-1">Current Story</h3>
+        <p className="text-lg md:text-2xl font-bold text-white leading-tight line-clamp-3 px-4">
           {currentStory.title}
         </p>
       </div>
 
       <div className="flex flex-col items-center">
-        <div className="text-3xl md:text-4xl font-bold text-indigo-400 bg-slate-900/50 w-16 h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center border-2 border-slate-700 shadow-inner">
+        <div className="text-2xl md:text-3xl font-bold text-indigo-400 bg-slate-900/50 w-14 h-14 md:w-16 md:h-16 rounded-full flex items-center justify-center border-2 border-slate-700 shadow-inner">
           {Object.keys(currentStory.votes).length}
         </div>
-        <div className="text-[10px] md:text-xs text-slate-500 uppercase tracking-wider mt-2">Votes Cast</div>
+        <div className="text-[10px] md:text-xs text-slate-500 uppercase tracking-wider mt-1">Votes Cast</div>
       </div>
 
       {isScrumMaster ? (
         <Button
-          size="lg"
+          size="md"
           onClick={onReveal}
           disabled={Object.keys(currentStory.votes).length === 0}
-          className="shadow-[0_0_20px_rgba(79,70,229,0.4)] w-full md:w-auto font-bold tracking-wide"
+          className="shadow-[0_0_20px_rgba(79,70,229,0.4)] font-bold tracking-wide"
         >
           REVEAL CARDS
         </Button>
       ) : (
-        <p className="text-sm md:text-base text-slate-500 animate-pulse">
+        <p className="text-xs md:text-sm text-slate-500 animate-pulse">
           {Object.keys(currentStory.votes).length > 0 ? "Waiting for reveal..." : "Cast your vote below..."}
         </p>
       )}
@@ -399,7 +392,7 @@ const PokerTable: React.FC<PokerTableProps> = ({
         </div>
 
         {/* 2. The "Table" Card (Story Info) */}
-        <div className="bg-slate-800/60 border border-slate-700 rounded-2xl p-4 shadow-lg backdrop-blur-sm mb-6 flex flex-col items-center justify-center min-h-[200px]">
+        <div className="bg-slate-800/60 border border-slate-700 rounded-2xl p-4 shadow-lg backdrop-blur-sm mb-6 flex flex-col items-center justify-center min-h-[220px]">
            <TableSurfaceContent 
               currentStory={currentStory}
               areVotesRevealed={areVotesRevealed}
@@ -460,7 +453,6 @@ const PokerTable: React.FC<PokerTableProps> = ({
           DESKTOP LAYOUT (>= md)
           Absolute positioning with circular table metaphor.
           UPDATED: Uses two concentric circles. Inner for cards, Outer for users.
-          This ensures cards are closer to the "table" and users are at the "seats", preventing overlap.
          ================================================================================= */}
       <div className="hidden md:flex w-full h-full items-center justify-center relative">
           
@@ -483,8 +475,8 @@ const PokerTable: React.FC<PokerTableProps> = ({
           {/* Main Table Area */}
           <div className="relative w-full max-w-5xl aspect-video max-h-[80vh] flex items-center justify-center">
               
-              {/* Table Surface */}
-              <div className="absolute inset-16 bg-slate-800/50 rounded-[3rem] border-4 border-slate-700/50 shadow-[0_0_50px_rgba(0,0,0,0.3)] backdrop-blur-sm flex flex-col items-center justify-center p-8">
+              {/* Table Surface - Sized smaller to fit inside users */}
+              <div className="absolute w-[50%] h-[55%] bg-slate-800/50 rounded-[3rem] border-4 border-slate-700/50 shadow-[0_0_50px_rgba(0,0,0,0.3)] backdrop-blur-sm flex flex-col items-center justify-center p-4 z-0 overflow-hidden">
                   <TableSurfaceContent 
                     currentStory={currentStory}
                     areVotesRevealed={areVotesRevealed}
@@ -503,14 +495,15 @@ const PokerTable: React.FC<PokerTableProps> = ({
                   const angle = angleStep * index + Math.PI / 2; 
                   
                   // Seat Position (Outer Circle - Users)
-                  const seatRadiusX = 42; 
-                  const seatRadiusY = 42; 
+                  // Increased radius to 45% to push users away from center content
+                  const seatRadiusX = 45; 
+                  const seatRadiusY = 45; 
                   const seatLeft = 50 + seatRadiusX * Math.cos(angle);
                   const seatTop = 50 + seatRadiusY * Math.sin(angle);
 
                   // Card Position (Inner Circle - Cards)
-                  const cardRadiusX = 28; // Closer to center
-                  const cardRadiusY = 30; 
+                  const cardRadiusX = 32; 
+                  const cardRadiusY = 32; 
                   const cardLeft = 50 + cardRadiusX * Math.cos(angle);
                   const cardTop = 50 + cardRadiusY * Math.sin(angle);
 
@@ -519,7 +512,7 @@ const PokerTable: React.FC<PokerTableProps> = ({
 
                   return (
                       <React.Fragment key={user.id}>
-                          {/* 1. The Card (Inner Circle) - Rendered absolutely */}
+                          {/* 1. The Card (Inner Circle) */}
                           <div 
                               className={`absolute z-20 transition-all duration-500 flex justify-center items-center ${hasVoted ? 'opacity-100 scale-100' : 'opacity-0 scale-50'}`}
                               style={{ left: `${cardLeft}%`, top: `${cardTop}%`, transform: 'translate(-50%, -50%)' }}
