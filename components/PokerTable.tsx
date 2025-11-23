@@ -1,4 +1,3 @@
-
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 // @ts-ignore
 import confetti from 'canvas-confetti';
@@ -97,7 +96,8 @@ const TableSurfaceContent: React.FC<{
   if (areVotesRevealed) {
     // Calculate consensus (modes)
     const voteCounts = stats.counts;
-    const maxVotes = Math.max(...Object.values(voteCounts), 0);
+    // Cast to number[] to fix TS error where Object.values returns unknown[]
+    const maxVotes = Math.max(...(Object.values(voteCounts) as number[]), 0);
     const consensusValues = Object.entries(voteCounts)
         .filter(([_, count]) => count === maxVotes)
         .map(([val]) => val)
@@ -153,11 +153,13 @@ const TableSurfaceContent: React.FC<{
            <div className="flex h-6 w-full rounded-md overflow-hidden bg-slate-900 shadow-inner border border-slate-700/50">
               {sortedDistribution.map(([val, count]) => {
                   const colors = ['bg-indigo-500', 'bg-purple-500', 'bg-pink-500', 'bg-rose-500', 'bg-orange-500', 'bg-amber-500'];
-                  const colorIdx = (val.charCodeAt(0) + (val.length > 1 ? val.charCodeAt(1) : 0)) % colors.length;
+                  // Ensure val is string to fix arithmetic operation TS error
+                  const sVal = String(val);
+                  const colorIdx = (sVal.charCodeAt(0) + (sVal.length > 1 ? sVal.charCodeAt(1) : 0)) % colors.length;
                   const color = colors[colorIdx];
                   
                   const total = Object.values(currentStory.votes).length;
-                  const width = (count / total) * 100;
+                  const width = (Number(count) / total) * 100;
                   
                   return (
                     <div 
@@ -360,8 +362,8 @@ const PokerTable: React.FC<PokerTableProps> = ({
       <button 
         onClick={() => setShowGameHub(true)}
         className="absolute z-40 bg-indigo-600 hover:bg-indigo-500 text-white rounded-full flex items-center justify-center shadow-lg transition-transform hover:rotate-12 hover:scale-110
-                   md:top-4 md:right-4 md:w-10 md:h-10
-                   bottom-20 right-4 w-12 h-12 md:hidden"
+                   bottom-20 right-4 w-12 h-12
+                   md:top-4 md:right-4 md:bottom-auto md:w-10 md:h-10"
         title="Arcade Mode"
       >
         <span className="text-xl">🎮</span>
@@ -435,8 +437,14 @@ const PokerTable: React.FC<PokerTableProps> = ({
 
                    {/* User Identity - Below Card */}
                    <div className="flex items-center gap-1.5 w-full justify-center z-10">
-                      <div className="w-6 h-6 rounded-full bg-slate-700 border border-slate-500 flex items-center justify-center text-xs shadow-md shrink-0">
+                      <div className="relative w-6 h-6 rounded-full bg-slate-700 border border-slate-500 flex items-center justify-center text-xs shadow-md shrink-0">
                          {user.avatar}
+                         {user.role === UserRole.SCRUM_MASTER && (
+                            <div className="absolute -top-1.5 -right-1.5 bg-slate-800 rounded-full p-0.5 border border-slate-600 text-[10px] z-20 shadow-sm" title="Scrum Master">👨‍🍳</div>
+                         )}
+                         {user.role === UserRole.PRODUCT_OWNER && (
+                            <div className="absolute -top-1.5 -right-1.5 bg-slate-900 rounded-full p-0.5 border border-amber-500 text-[10px] z-20 shadow-sm" title="Product Owner">👑</div>
+                         )}
                       </div>
                       <div className="text-[10px] text-slate-300 font-medium truncate max-w-[4rem]">
                          {user.name}
@@ -535,7 +543,10 @@ const PokerTable: React.FC<PokerTableProps> = ({
                               <div className={`relative w-14 h-14 rounded-full border-2 flex items-center justify-center text-2xl bg-slate-800 shadow-lg transition-colors ${hasVoted ? 'border-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.5)]' : 'border-slate-600'} ${!user.isOnline ? 'grayscale opacity-50' : ''}`}>
                                   {user.avatar}
                                   {user.role === UserRole.SCRUM_MASTER && (
-                                      <div className="absolute -top-2 -right-2 bg-amber-500 text-white text-[10px] p-1 rounded-full shadow-sm border border-slate-900">👑</div>
+                                      <div className="absolute -top-2 -right-2 w-7 h-7 flex items-center justify-center bg-slate-800 rounded-full border-2 border-slate-600 text-lg shadow-md z-20" title="Scrum Master">👨‍🍳</div>
+                                  )}
+                                  {user.role === UserRole.PRODUCT_OWNER && (
+                                      <div className="absolute -top-2 -right-2 w-7 h-7 flex items-center justify-center bg-slate-900 rounded-full border-2 border-amber-500 text-lg shadow-md z-20" title="Product Owner">👑</div>
                                   )}
                               </div>
                               {/* Name Tag */}
