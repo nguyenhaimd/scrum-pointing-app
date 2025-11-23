@@ -1,3 +1,4 @@
+
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 // @ts-ignore
 import confetti from 'canvas-confetti';
@@ -9,9 +10,11 @@ import ReactionOverlay from './ReactionOverlay';
 import { POINTING_SCALE, REACTION_EMOJIS, WOW_EMOJI } from '../constants';
 import { playSound } from '../services/soundService';
 import GameHub from './TicTacToe';
+import Whiteboard from './Whiteboard';
 
 interface PokerTableProps {
   users: User[];
+  currentUser: User; // Add current user to props
   currentStory: Story | null;
   areVotesRevealed: boolean;
   onReveal: () => void;
@@ -83,8 +86,8 @@ const TableSurfaceContent: React.FC<{
 
   if (!currentStory) {
     return (
-      <div className="text-center space-y-4 animate-fade-in w-full h-full flex flex-col items-center justify-center">
-        <div className="text-5xl md:text-6xl mb-2">🃏</div>
+      <div className="text-center space-y-4 animate-fade-in w-full h-full flex flex-col items-center justify-center p-4">
+        <div className="text-5xl md:text-6xl mb-2 opacity-50">🃏</div>
         <h2 className="text-xl md:text-2xl font-bold text-slate-300">Waiting for Story...</h2>
         {isScrumMaster && (
           <p className="text-sm md:text-base text-slate-500">Select a story from the sidebar.</p>
@@ -117,21 +120,21 @@ const TableSurfaceContent: React.FC<{
     });
 
     return (
-      <div className="text-center w-full h-full flex flex-col items-center justify-center overflow-hidden animate-fade-in px-2">
+      <div className="text-center w-full h-full flex flex-col items-center justify-center overflow-hidden animate-fade-in px-4">
         
         {/* Consensus Display */}
-        <div className="bg-slate-800/80 p-4 rounded-xl border-2 border-indigo-500/50 shadow-[0_0_20px_rgba(99,102,241,0.2)] backdrop-blur-md w-full max-w-sm transform transition-all mb-2 flex flex-col justify-center shrink-0">
+        <div className="bg-slate-800/80 p-3 rounded-xl border-2 border-indigo-500/50 shadow-[0_0_20px_rgba(99,102,241,0.2)] backdrop-blur-md w-full max-w-sm transform transition-all mb-2 flex flex-col justify-center shrink-0">
             <div className="text-indigo-300 text-[10px] uppercase font-bold tracking-widest mb-1">Team Consensus</div>
             
-            <div className="flex justify-center items-center gap-2 flex-wrap min-h-[4rem]">
+            <div className="flex justify-center items-center gap-2 flex-wrap min-h-[3rem]">
                 {consensusValues.length > 0 ? (
                     consensusValues.map((val, idx) => (
                         <div key={val} className="flex items-center">
-                            <span className="text-6xl md:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white to-slate-300 drop-shadow-sm">
+                            <span className="text-5xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white to-slate-300 drop-shadow-sm">
                                 {val}
                             </span>
                             {idx < consensusValues.length - 1 && (
-                                <span className="text-3xl text-indigo-500/50 mx-2 font-light">&</span>
+                                <span className="text-2xl text-indigo-500/50 mx-2 font-light">&</span>
                             )}
                         </div>
                     ))
@@ -149,8 +152,8 @@ const TableSurfaceContent: React.FC<{
         </div>
 
         {/* Vote Distribution Bar */}
-        <div className="w-full max-w-xs space-y-1 mb-3 shrink-0">
-           <div className="flex h-6 w-full rounded-md overflow-hidden bg-slate-900 shadow-inner border border-slate-700/50">
+        <div className="w-full max-w-[200px] space-y-1 mb-3 shrink-0">
+           <div className="flex h-4 w-full rounded-md overflow-hidden bg-slate-900 shadow-inner border border-slate-700/50">
               {sortedDistribution.map(([val, count]) => {
                   const colors = ['bg-indigo-500', 'bg-purple-500', 'bg-pink-500', 'bg-rose-500', 'bg-orange-500', 'bg-amber-500'];
                   // Ensure val is string to fix arithmetic operation TS error
@@ -164,7 +167,7 @@ const TableSurfaceContent: React.FC<{
                   return (
                     <div 
                         key={val} 
-                        className={`${color} h-full flex items-center justify-center text-[10px] font-bold text-white border-r border-slate-900/20 last:border-0`} 
+                        className={`${color} h-full flex items-center justify-center text-[8px] font-bold text-white border-r border-slate-900/20 last:border-0`} 
                         style={{ width: `${width}%` }} 
                         title={`${val}: ${count} votes`}
                     >
@@ -183,13 +186,13 @@ const TableSurfaceContent: React.FC<{
                         key={val} 
                         onClick={() => onFinalize(val)}
                         size="sm"
-                        className="bg-emerald-600 hover:bg-emerald-500 text-white border-0 shadow-lg px-4 py-2 text-sm font-bold"
+                        className="bg-emerald-600 hover:bg-emerald-500 text-white border-0 shadow-lg px-3 py-1.5 text-xs font-bold"
                      >
                         Accept {val}
                      </Button>
                 ))}
                 
-                <Button variant="secondary" onClick={onReset} size="sm" className="border-slate-600 py-2">
+                <Button variant="secondary" onClick={onReset} size="sm" className="border-slate-600 py-1.5 text-xs">
                     ↻ Revote
                 </Button>
             </div>
@@ -231,19 +234,19 @@ const TableSurfaceContent: React.FC<{
 
   // Voting In Progress
   return (
-    <div className="text-center w-full h-full flex flex-col items-center justify-center space-y-3 md:space-y-4">
+    <div className="text-center w-full h-full flex flex-col items-center justify-center space-y-3 md:space-y-4 p-4">
       <div className="max-w-md w-full">
-        <h3 className="text-base md:text-lg text-slate-400 font-medium mb-1">Current Story</h3>
-        <p className="text-lg md:text-2xl font-bold text-white leading-tight line-clamp-3 px-4">
+        <h3 className="text-sm md:text-base text-slate-400 font-medium mb-1 uppercase tracking-wide">Current Story</h3>
+        <p className="text-lg md:text-xl font-bold text-white leading-snug line-clamp-3">
           {currentStory.title}
         </p>
       </div>
 
-      <div className="flex flex-col items-center">
-        <div className="text-2xl md:text-3xl font-bold text-indigo-400 bg-slate-900/50 w-14 h-14 md:w-16 md:h-16 rounded-full flex items-center justify-center border-2 border-slate-700 shadow-inner">
+      <div className="flex flex-col items-center mt-4">
+        <div className="text-2xl md:text-3xl font-bold text-indigo-400 bg-slate-900/50 w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center border-2 border-slate-700 shadow-inner">
           {Object.keys(currentStory.votes).length}
         </div>
-        <div className="text-[10px] md:text-xs text-slate-500 uppercase tracking-wider mt-1">Votes Cast</div>
+        <div className="text-[10px] md:text-xs text-slate-500 uppercase tracking-wider mt-1">Votes</div>
       </div>
 
       {isScrumMaster ? (
@@ -251,12 +254,12 @@ const TableSurfaceContent: React.FC<{
           size="md"
           onClick={onReveal}
           disabled={Object.keys(currentStory.votes).length === 0}
-          className="shadow-[0_0_20px_rgba(79,70,229,0.4)] font-bold tracking-wide"
+          className="shadow-[0_0_20px_rgba(79,70,229,0.4)] font-bold tracking-wide mt-2"
         >
           REVEAL CARDS
         </Button>
       ) : (
-        <p className="text-xs md:text-sm text-slate-500 animate-pulse">
+        <p className="text-xs md:text-sm text-slate-500 animate-pulse mt-2">
           {Object.keys(currentStory.votes).length > 0 ? "Waiting for reveal..." : "Cast your vote below..."}
         </p>
       )}
@@ -267,6 +270,7 @@ const TableSurfaceContent: React.FC<{
 
 const PokerTable: React.FC<PokerTableProps> = ({
   users,
+  currentUser,
   currentStory,
   areVotesRevealed,
   onReveal,
@@ -284,6 +288,7 @@ const PokerTable: React.FC<PokerTableProps> = ({
 }) => {
   const [manualFinalScore, setManualFinalScore] = useState<string | number | null>(null);
   const [showGameHub, setShowGameHub] = useState(false);
+  const [showWhiteboard, setShowWhiteboard] = useState(false);
   const prevRevealed = useRef(areVotesRevealed);
   const isScrumMaster = currentUserRole === UserRole.SCRUM_MASTER;
 
@@ -357,17 +362,29 @@ const PokerTable: React.FC<PokerTableProps> = ({
       {/* Global Overlays */}
       <ReactionOverlay lastReaction={lastReaction} />
       {showGameHub && <GameHub onClose={() => setShowGameHub(false)} />}
+      {showWhiteboard && <Whiteboard currentUser={currentUser} onClose={() => setShowWhiteboard(false)} />}
       
-      {/* Game Hub Toggle (Desktop: Top Right, Mobile: Bottom Right floating) */}
-      <button 
-        onClick={() => setShowGameHub(true)}
-        className="absolute z-40 bg-indigo-600 hover:bg-indigo-500 text-white rounded-full flex items-center justify-center shadow-lg transition-transform hover:rotate-12 hover:scale-110
-                   bottom-20 right-4 w-12 h-12
-                   md:top-4 md:right-4 md:bottom-auto md:w-10 md:h-10"
-        title="Arcade Mode"
-      >
-        <span className="text-xl">🎮</span>
-      </button>
+      {/* Game Hub & Whiteboard Toggles */}
+      <div className="absolute z-40 top-4 right-4 flex flex-col md:flex-row gap-3 md:gap-4 items-center">
+          
+          {/* Whiteboard Button */}
+          <button 
+            onClick={() => setShowWhiteboard(true)}
+            className="bg-emerald-600 hover:bg-emerald-500 text-white rounded-full flex items-center justify-center shadow-lg transition-transform hover:scale-110 w-10 h-10 md:w-10 md:h-10"
+            title="Whiteboard"
+          >
+            <span className="text-xl">✏️</span>
+          </button>
+
+          {/* Game Hub Button */}
+          <button 
+            onClick={() => setShowGameHub(true)}
+            className="bg-indigo-600 hover:bg-indigo-500 text-white rounded-full flex items-center justify-center shadow-lg transition-transform hover:rotate-12 hover:scale-110 w-10 h-10 md:w-10 md:h-10"
+            title="Arcade Mode"
+          >
+            <span className="text-xl">🎮</span>
+          </button>
+      </div>
 
 
       {/* =================================================================================
@@ -388,7 +405,7 @@ const PokerTable: React.FC<PokerTableProps> = ({
              canControl={isScrumMaster} 
           />
           
-          <div className="flex flex-col items-end gap-1 relative z-50">
+          <div className="flex flex-col items-end gap-1 relative z-50 mr-12">
              <ReactionBar onReaction={handleReaction} />
           </div>
         </div>
@@ -428,7 +445,6 @@ const PokerTable: React.FC<PokerTableProps> = ({
                           faceDown={!areVotesRevealed}
                           revealed={areVotesRevealed}
                           size="sm" 
-                          theme={user.cardTheme}
                         />
                       ) : (
                         <div className="w-8 h-12 rounded-md border-2 border-dashed border-slate-600 bg-slate-800/50"></div>
@@ -461,8 +477,9 @@ const PokerTable: React.FC<PokerTableProps> = ({
           DESKTOP LAYOUT (>= md)
           Absolute positioning with circular table metaphor.
           UPDATED: Uses two concentric circles. Inner for cards, Outer for users.
+          FIXED: Prevent overlapping by increasing radius and decreasing table size.
          ================================================================================= */}
-      <div className="hidden md:flex w-full h-full items-center justify-center relative">
+      <div className="hidden md:flex w-full h-full items-center justify-center relative overflow-hidden">
           
           {/* Top Bar Controls */}
           <div className="absolute top-4 left-0 right-0 flex justify-center items-start pointer-events-none z-30">
@@ -480,11 +497,11 @@ const PokerTable: React.FC<PokerTableProps> = ({
             </div>
           </div>
 
-          {/* Main Table Area */}
-          <div className="relative w-full max-w-5xl aspect-video max-h-[80vh] flex items-center justify-center">
+          {/* Main Table Container */}
+          <div className="relative w-full max-w-6xl aspect-[16/9] max-h-[85vh] flex items-center justify-center">
               
-              {/* Table Surface - Sized smaller to fit inside users */}
-              <div className="absolute w-[50%] h-[55%] bg-slate-800/50 rounded-[3rem] border-4 border-slate-700/50 shadow-[0_0_50px_rgba(0,0,0,0.3)] backdrop-blur-sm flex flex-col items-center justify-center p-4 z-0 overflow-hidden">
+              {/* Table Surface - Reduced size to 35% width to give cards more room */}
+              <div className="absolute w-[35%] h-[50%] bg-slate-800/80 rounded-[4rem] border-4 border-slate-700 shadow-[0_0_60px_rgba(0,0,0,0.4)] backdrop-blur-md flex flex-col items-center justify-center z-0 overflow-hidden p-2">
                   <TableSurfaceContent 
                     currentStory={currentStory}
                     areVotesRevealed={areVotesRevealed}
@@ -500,18 +517,24 @@ const PokerTable: React.FC<PokerTableProps> = ({
               {users.map((user, index) => {
                   const totalUsers = users.length;
                   const angleStep = (2 * Math.PI) / totalUsers;
-                  const angle = angleStep * index + Math.PI / 2; 
+                  // Start from bottom (-PI/2 is top, so +PI/2 is bottom)
+                  // Actually let's start from top (-PI/2)
+                  const angle = angleStep * index - Math.PI / 2; 
                   
-                  // Seat Position (Outer Circle - Users)
-                  // Increased radius to 45% to push users away from center content
-                  const seatRadiusX = 45; 
-                  const seatRadiusY = 45; 
+                  // Radii adjustments for spacing
+                  // Table is approx 17.5% radius (35% width). 
+                  // Place cards at ~28% radius
+                  // Place users at ~42% radius
+                  
+                  const seatRadiusX = 42; 
+                  const seatRadiusY = 42; 
                   const seatLeft = 50 + seatRadiusX * Math.cos(angle);
                   const seatTop = 50 + seatRadiusY * Math.sin(angle);
 
-                  // Card Position (Inner Circle - Cards)
-                  const cardRadiusX = 32; 
-                  const cardRadiusY = 32; 
+                  // Card Position (Inner Circle)
+                  // Move closer to users but distinct from table
+                  const cardRadiusX = 30; 
+                  const cardRadiusY = 30; 
                   const cardLeft = 50 + cardRadiusX * Math.cos(angle);
                   const cardTop = 50 + cardRadiusY * Math.sin(angle);
 
@@ -530,7 +553,6 @@ const PokerTable: React.FC<PokerTableProps> = ({
                                   faceDown={!areVotesRevealed}
                                   revealed={areVotesRevealed}
                                   size="md"
-                                  theme={user.cardTheme} 
                               />
                           </div>
 

@@ -292,6 +292,7 @@ const App: React.FC = () => {
             {/* Main Visual Area */}
             <PokerTable 
                 users={visibleUsers}
+                currentUser={currentUser}
                 currentStory={currentStory}
                 areVotesRevealed={state.areVotesRevealed}
                 currentUserRole={currentUser.role}

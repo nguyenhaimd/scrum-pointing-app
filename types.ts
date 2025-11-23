@@ -14,7 +14,6 @@ export interface User {
   lastHeartbeat: number;
   room: string;
   avatar: string;
-  cardTheme?: string; // New field for card customization
   deviceType: 'mobile' | 'tablet' | 'desktop';
 }
 

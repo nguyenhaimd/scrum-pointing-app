@@ -63,7 +63,6 @@ export const useAppStore = (currentUser: User | null) => {
                     role: value.role || UserRole.OBSERVER,
                     isOnline: !!value.isOnline,
                     avatar: value.avatar || '👤',
-                    cardTheme: value.cardTheme || 'classic',
                     deviceType: value.deviceType || 'desktop'
                 } as User;
             }

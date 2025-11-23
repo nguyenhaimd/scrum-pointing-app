@@ -30,7 +30,6 @@ const VotingControls: React.FC<VotingControlsProps> = ({ currentStory, currentUs
             isSelected={selectedVote === value}
             onClick={() => onVote(value)}
             size="md"
-            theme={currentUser.cardTheme} // Pass the user's chosen theme
           />
         ))}
       </div>

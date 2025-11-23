@@ -1,6 +1,5 @@
 
 import React from 'react';
-import { CARD_THEMES } from '../constants';
 
 interface CardProps {
   value: string | number;
@@ -9,7 +8,6 @@ interface CardProps {
   faceDown?: boolean;
   revealed?: boolean;
   size?: 'sm' | 'md' | 'lg';
-  theme?: string; // Theme ID
 }
 
 const Card: React.FC<CardProps> = ({ 
@@ -18,8 +16,7 @@ const Card: React.FC<CardProps> = ({
   onClick, 
   faceDown = false, 
   revealed = false,
-  size = 'md',
-  theme = 'classic'
+  size = 'md'
 }) => {
   
   const sizeClasses = {
@@ -28,16 +25,13 @@ const Card: React.FC<CardProps> = ({
     lg: 'w-24 h-36 text-3xl rounded-2xl',
   };
 
-  // Find the theme definition, fallback to classic
-  const themeDef = CARD_THEMES.find(t => t.id === theme) || CARD_THEMES[0];
-
-  // Styles for the front of the card (value side)
+  // Standard styles
   const frontBaseClasses = `absolute inset-0 w-full h-full border-2 flex items-center justify-center font-bold shadow-md transition-all duration-200 ${sizeClasses[size]}`;
   
   const frontSelectedClasses = `bg-indigo-600 border-indigo-400 text-white -translate-y-4 shadow-indigo-500/50 z-10`;
   
-  // For unselected front, use the theme props
-  const frontUnselectedClasses = `${themeDef.bg} ${themeDef.border} ${themeDef.text} hover:brightness-110`;
+  // Default unselected style
+  const frontUnselectedClasses = `bg-slate-800 border-slate-600 text-slate-200 hover:brightness-110 hover:-translate-y-1`;
 
   const cardContent = (
     <div className={`
@@ -52,15 +46,15 @@ const Card: React.FC<CardProps> = ({
   // Styles for the back of the card
   const cardBack = (
     <div className={`
-      absolute inset-0 w-full h-full border-2 border-white/10 bg-gradient-to-br ${themeDef.backGradient}
-      flex items-center justify-center overflow-hidden ${sizeClasses[size]}
+      absolute inset-0 w-full h-full border-2 border-slate-600 bg-gradient-to-br from-slate-800 to-slate-900
+      flex items-center justify-center overflow-hidden ${sizeClasses[size]} rounded-xl
     `}>
        {/* Pattern Overlay */}
-      <div className={`absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] ${themeDef.patternOpacity}`}></div>
+      <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
       
       {/* Center Logo/Icon */}
       <div className="relative w-1/2 h-1/2 rounded-full bg-black/20 flex items-center justify-center backdrop-blur-sm border border-white/10">
-        <span className={`font-bold opacity-80 text-white text-opacity-80 text-xs`}>SP</span>
+        <span className="font-bold opacity-80 text-white text-opacity-80 text-xs">SP</span>
       </div>
     </div>
   );
@@ -74,7 +68,7 @@ const Card: React.FC<CardProps> = ({
                       {cardBack}
                   </div>
                   {/* Back (Actual Value) - Rotated 180 initially so when parent rotates 180 it becomes visible */}
-                  <div className={`absolute inset-0 w-full h-full backface-hidden rotate-y-180 overflow-hidden border-2 flex items-center justify-center font-bold shadow-lg ${sizeClasses[size]} ${themeDef.bg} ${themeDef.border} ${themeDef.text}`}>
+                  <div className={`absolute inset-0 w-full h-full backface-hidden rotate-y-180 overflow-hidden border-2 flex items-center justify-center font-bold shadow-lg ${sizeClasses[size]} bg-slate-800 border-slate-500 text-white`}>
                       {value}
                   </div>
               </div>

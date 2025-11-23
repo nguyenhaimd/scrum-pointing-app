@@ -1,14 +1,14 @@
 
 import React, { useEffect, useState, useRef, useMemo } from 'react';
-import Login from './components/Login';
-import PokerTable from './components/PokerTable';
-import VotingControls from './components/VotingControls';
-import StoryPanel from './components/StoryPanel';
-import ChatPanel from './components/ChatPanel';
-import { useAppStore } from './services/store';
-import { User } from './types';
-import { USER_STORAGE_KEY, SOUND_PREF_KEY, STALE_USER_TIMEOUT } from './constants';
-import { setMuted, playSound } from './services/soundService';
+import Login from './Login';
+import PokerTable from './PokerTable';
+import VotingControls from './VotingControls';
+import StoryPanel from './StoryPanel';
+import ChatPanel from './ChatPanel';
+import { useAppStore } from '../services/store';
+import { User } from '../types';
+import { USER_STORAGE_KEY, SOUND_PREF_KEY, STALE_USER_TIMEOUT } from '../constants';
+import { setMuted, playSound } from '../services/soundService';
 
 type MobileView = 'stories' | 'table' | 'chat';
 
@@ -89,7 +89,7 @@ const App: React.FC = () => {
       prev.forEach(u => {
           if (!curr.find(c => c.id === u.id)) {
               if (u.id !== currentUser?.id) { // Don't notify self
-                  addToast(`${u.name} disconnected`, 'error', true, 60000);
+                  addToast(`${u.name} disconnected`, 'error', true);
                   playSound.leave();
               }
           }
@@ -108,16 +108,14 @@ const App: React.FC = () => {
       prevVisibleUsersRef.current = curr;
   }, [visibleUsers, currentUser]); // Re-run whenever the visible list changes
 
-  const addToast = (message: string, type: Toast['type'] = 'info', persistent = false, duration?: number) => {
+  const addToast = (message: string, type: Toast['type'] = 'info', persistent = false) => {
       const id = crypto.randomUUID();
       setToasts(prev => [...prev, { id, message, type, persistent }]);
       
-      const time = duration ?? (persistent ? 0 : 4000);
-      
-      if (time > 0) {
+      if (!persistent) {
           setTimeout(() => {
               removeToast(id);
-          }, time);
+          }, 4000);
       }
   };
 
@@ -294,6 +292,7 @@ const App: React.FC = () => {
             {/* Main Visual Area */}
             <PokerTable 
                 users={visibleUsers}
+                currentUser={currentUser}
                 currentStory={currentStory}
                 areVotesRevealed={state.areVotesRevealed}
                 currentUserRole={currentUser.role}
