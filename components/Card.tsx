@@ -20,18 +20,18 @@ const Card: React.FC<CardProps> = ({
 }) => {
   
   const sizeClasses = {
-    sm: 'w-8 h-12 text-sm rounded-md',
-    md: 'w-14 h-20 text-lg md:w-16 md:h-24 md:text-xl rounded-xl',
-    lg: 'w-24 h-36 text-3xl rounded-2xl',
+    sm: 'w-9 h-14 text-base rounded-md',
+    md: 'w-16 h-24 text-2xl rounded-xl',
+    lg: 'w-28 h-40 text-4xl rounded-2xl',
   };
 
-  // Standard styles
+  // Standard Face-Up Styles (White card, dark text for readability)
   const frontBaseClasses = `absolute inset-0 w-full h-full border-2 flex items-center justify-center font-bold shadow-md transition-all duration-200 ${sizeClasses[size]}`;
   
-  const frontSelectedClasses = `bg-indigo-600 border-indigo-400 text-white -translate-y-4 shadow-indigo-500/50 z-10`;
+  const frontSelectedClasses = `bg-indigo-100 border-indigo-500 text-indigo-900 -translate-y-3 shadow-indigo-500/40 z-10 ring-2 ring-indigo-400 ring-offset-2 ring-offset-slate-900`;
   
   // Default unselected style
-  const frontUnselectedClasses = `bg-slate-800 border-slate-600 text-slate-200 hover:brightness-110 hover:-translate-y-1`;
+  const frontUnselectedClasses = `bg-white border-slate-300 text-slate-800 hover:-translate-y-1 hover:shadow-lg`;
 
   const cardContent = (
     <div className={`
@@ -43,18 +43,18 @@ const Card: React.FC<CardProps> = ({
     </div>
   );
 
-  // Styles for the back of the card
+  // Styles for the back of the card (Face Down)
   const cardBack = (
     <div className={`
-      absolute inset-0 w-full h-full border-2 border-slate-600 bg-gradient-to-br from-slate-800 to-slate-900
-      flex items-center justify-center overflow-hidden ${sizeClasses[size]} rounded-xl
+      absolute inset-0 w-full h-full border-4 border-white/10 bg-indigo-600
+      flex items-center justify-center overflow-hidden ${sizeClasses[size]} rounded-xl shadow-sm
     `}>
-       {/* Pattern Overlay */}
-      <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
+       {/* Simple Pattern */}
+       <div className="absolute inset-0 opacity-30 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white/20 to-transparent" style={{ backgroundSize: '10px 10px', backgroundImage: 'radial-gradient(white 1px, transparent 0)' }}></div>
       
-      {/* Center Logo/Icon */}
-      <div className="relative w-1/2 h-1/2 rounded-full bg-black/20 flex items-center justify-center backdrop-blur-sm border border-white/10">
-        <span className="font-bold opacity-80 text-white text-opacity-80 text-xs">SP</span>
+      {/* Center Logo */}
+      <div className="relative w-8 h-8 rounded-full border-2 border-white/30 flex items-center justify-center">
+         <span className="text-[10px] font-bold text-white/80">SP</span>
       </div>
     </div>
   );
@@ -67,8 +67,8 @@ const Card: React.FC<CardProps> = ({
                   <div className="absolute inset-0 w-full h-full backface-hidden">
                       {cardBack}
                   </div>
-                  {/* Back (Actual Value) - Rotated 180 initially so when parent rotates 180 it becomes visible */}
-                  <div className={`absolute inset-0 w-full h-full backface-hidden rotate-y-180 overflow-hidden border-2 flex items-center justify-center font-bold shadow-lg ${sizeClasses[size]} bg-slate-800 border-slate-500 text-white`}>
+                  {/* Back (Actual Value) - Rotated 180 initially */}
+                  <div className={`absolute inset-0 w-full h-full backface-hidden rotate-y-180 overflow-hidden border-2 flex items-center justify-center font-bold shadow-lg ${sizeClasses[size]} bg-white border-slate-200 text-slate-900`}>
                       {value}
                   </div>
               </div>

@@ -14,7 +14,7 @@ import Whiteboard from './Whiteboard';
 
 interface PokerTableProps {
   users: User[];
-  currentUser: User; // Add current user to props
+  currentUser: User; 
   currentStory: Story | null;
   areVotesRevealed: boolean;
   onReveal: () => void;
@@ -66,7 +66,7 @@ const ReactionBar: React.FC<{ onReaction: (emoji: string) => void }> = ({ onReac
   );
 };
 
-// 1. The content displayed on the "Table Surface" (Story info or Results)
+// 1. The content displayed on the "Table Surface"
 const TableSurfaceContent: React.FC<{
   currentStory: Story | null;
   areVotesRevealed: boolean;
@@ -79,7 +79,6 @@ const TableSurfaceContent: React.FC<{
     
   const [showManualEntry, setShowManualEntry] = useState(false);
 
-  // Reset manual entry toggle when story changes or votes reset
   useEffect(() => {
     setShowManualEntry(false);
   }, [currentStory?.id, areVotesRevealed]);
@@ -87,19 +86,17 @@ const TableSurfaceContent: React.FC<{
   if (!currentStory) {
     return (
       <div className="text-center space-y-4 animate-fade-in w-full h-full flex flex-col items-center justify-center p-4">
-        <div className="text-5xl md:text-6xl mb-2 opacity-50">🃏</div>
-        <h2 className="text-xl md:text-2xl font-bold text-slate-300">Waiting for Story...</h2>
+        <div className="text-5xl md:text-6xl mb-2 opacity-50 grayscale">🃏</div>
+        <h2 className="text-xl font-bold text-slate-300">Waiting for Story...</h2>
         {isScrumMaster && (
-          <p className="text-sm md:text-base text-slate-500">Select a story from the sidebar.</p>
+          <p className="text-sm text-slate-500">Select a story from the sidebar.</p>
         )}
       </div>
     );
   }
 
   if (areVotesRevealed) {
-    // Calculate consensus (modes)
     const voteCounts = stats.counts;
-    // Cast to number[] to fix TS error where Object.values returns unknown[]
     const maxVotes = Math.max(...(Object.values(voteCounts) as number[]), 0);
     const consensusValues = Object.entries(voteCounts)
         .filter(([_, count]) => count === maxVotes)
@@ -111,7 +108,6 @@ const TableSurfaceContent: React.FC<{
              return a.localeCompare(b);
         });
 
-    // Helper for distribution bar sorting
     const sortedDistribution = Object.entries(voteCounts).sort((a, b) => {
         const na = Number(a[0]);
         const nb = Number(b[0]);
@@ -120,43 +116,41 @@ const TableSurfaceContent: React.FC<{
     });
 
     return (
-      <div className="text-center w-full h-full flex flex-col items-center justify-center overflow-hidden animate-fade-in px-4">
+      <div className="text-center w-full h-full flex flex-col items-center justify-center overflow-hidden animate-fade-in px-2">
         
-        {/* Consensus Display */}
-        <div className="bg-slate-800/80 p-3 rounded-xl border-2 border-indigo-500/50 shadow-[0_0_20px_rgba(99,102,241,0.2)] backdrop-blur-md w-full max-w-sm transform transition-all mb-2 flex flex-col justify-center shrink-0">
-            <div className="text-indigo-300 text-[10px] uppercase font-bold tracking-widest mb-1">Team Consensus</div>
+        <div className="bg-slate-800/90 p-3 rounded-xl border border-indigo-500/30 shadow-lg backdrop-blur-md w-full max-w-xs transform transition-all mb-2 flex flex-col justify-center shrink-0">
+            <div className="text-indigo-300 text-[10px] uppercase font-bold tracking-widest mb-1">Consensus</div>
             
-            <div className="flex justify-center items-center gap-2 flex-wrap min-h-[3rem]">
+            <div className="flex justify-center items-center gap-2 flex-wrap min-h-[2.5rem]">
                 {consensusValues.length > 0 ? (
                     consensusValues.map((val, idx) => (
                         <div key={val} className="flex items-center">
-                            <span className="text-5xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white to-slate-300 drop-shadow-sm">
+                            <span className="text-4xl md:text-5xl font-black text-white drop-shadow-sm">
                                 {val}
                             </span>
                             {idx < consensusValues.length - 1 && (
-                                <span className="text-2xl text-indigo-500/50 mx-2 font-light">&</span>
+                                <span className="text-xl text-slate-500 mx-2">&</span>
                             )}
                         </div>
                     ))
                 ) : (
-                    <span className="text-xl text-slate-500 font-medium">No Votes</span>
+                    <span className="text-lg text-slate-500 font-medium">No Votes</span>
                 )}
             </div>
             
-            <div className="mt-2 flex justify-center">
-                <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border bg-slate-900/50 ${stats.agreement >= 80 ? 'border-emerald-500/30 text-emerald-400' : 'border-yellow-500/30 text-yellow-400'}`}>
-                    <span className="text-[10px] font-bold uppercase tracking-wide opacity-80">Agreement</span>
-                    <span className="text-xs font-bold">{stats.agreement}%</span>
+            <div className="mt-1 flex justify-center">
+                <div className={`inline-flex items-center gap-2 px-2 py-0.5 rounded-full border bg-slate-900/50 ${stats.agreement >= 80 ? 'border-emerald-500/30 text-emerald-400' : 'border-yellow-500/30 text-yellow-400'}`}>
+                    <span className="text-[9px] font-bold uppercase tracking-wide opacity-80">Agreement</span>
+                    <span className="text-[10px] font-bold">{stats.agreement}%</span>
                 </div>
             </div>
         </div>
 
         {/* Vote Distribution Bar */}
-        <div className="w-full max-w-[200px] space-y-1 mb-3 shrink-0">
-           <div className="flex h-4 w-full rounded-md overflow-hidden bg-slate-900 shadow-inner border border-slate-700/50">
+        <div className="w-full max-w-[180px] space-y-1 mb-2 shrink-0">
+           <div className="flex h-3 w-full rounded-full overflow-hidden bg-slate-900 shadow-inner border border-slate-700/50">
               {sortedDistribution.map(([val, count]) => {
                   const colors = ['bg-indigo-500', 'bg-purple-500', 'bg-pink-500', 'bg-rose-500', 'bg-orange-500', 'bg-amber-500'];
-                  // Ensure val is string to fix arithmetic operation TS error
                   const sVal = String(val);
                   const colorIdx = (sVal.charCodeAt(0) + (sVal.length > 1 ? sVal.charCodeAt(1) : 0)) % colors.length;
                   const color = colors[colorIdx];
@@ -169,10 +163,7 @@ const TableSurfaceContent: React.FC<{
                         key={val} 
                         className={`${color} h-full flex items-center justify-center text-[8px] font-bold text-white border-r border-slate-900/20 last:border-0`} 
                         style={{ width: `${width}%` }} 
-                        title={`${val}: ${count} votes`}
-                    >
-                        {width > 10 ? val : ''}
-                    </div>
+                    />
                   );
               })}
            </div>
@@ -186,35 +177,34 @@ const TableSurfaceContent: React.FC<{
                         key={val} 
                         onClick={() => onFinalize(val)}
                         size="sm"
-                        className="bg-emerald-600 hover:bg-emerald-500 text-white border-0 shadow-lg px-3 py-1.5 text-xs font-bold"
+                        className="bg-emerald-600 hover:bg-emerald-500 text-white border-0 shadow-lg px-3 py-1 text-xs font-bold"
                      >
                         Accept {val}
                      </Button>
                 ))}
                 
-                <Button variant="secondary" onClick={onReset} size="sm" className="border-slate-600 py-1.5 text-xs">
+                <Button variant="secondary" onClick={onReset} size="sm" className="border-slate-600 py-1 text-xs">
                     ↻ Revote
                 </Button>
             </div>
 
-            {/* Manual Override Toggle */}
             <div className="flex flex-col items-center gap-1 w-full relative">
                 <button 
                     onClick={() => setShowManualEntry(!showManualEntry)}
-                    className="text-[10px] text-slate-400 hover:text-indigo-400 flex items-center gap-1 transition-colors"
+                    className="text-[9px] text-slate-500 hover:text-slate-300 flex items-center gap-1 transition-colors"
                 >
                     {showManualEntry ? 'Hide options' : 'More options'}
                     <svg className={`w-3 h-3 transition-transform ${showManualEntry ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
                 </button>
 
                 {showManualEntry && (
-                    <div className="absolute bottom-full mb-2 z-50 flex flex-wrap justify-center gap-1 p-2 bg-slate-900 rounded-xl border border-slate-600 shadow-xl w-64">
+                    <div className="absolute bottom-full mb-2 z-50 flex flex-wrap justify-center gap-1 p-2 bg-slate-900 rounded-xl border border-slate-600 shadow-xl w-56">
                         {POINTING_SCALE.map(pts => (
                             <button
                                 key={pts}
                                 onClick={() => onFinalize(pts)}
                                 className={`
-                                    w-8 h-8 rounded-md text-xs font-bold transition-all border
+                                    w-6 h-6 rounded text-[10px] font-bold transition-all border
                                     ${consensusValues.includes(String(pts))
                                         ? 'bg-indigo-600 border-indigo-400 text-white'
                                         : 'bg-slate-800 border-slate-600 text-slate-300 hover:bg-slate-700'}
@@ -232,35 +222,34 @@ const TableSurfaceContent: React.FC<{
     );
   }
 
-  // Voting In Progress
   return (
-    <div className="text-center w-full h-full flex flex-col items-center justify-center space-y-3 md:space-y-4 p-4">
-      <div className="max-w-md w-full">
-        <h3 className="text-sm md:text-base text-slate-400 font-medium mb-1 uppercase tracking-wide">Current Story</h3>
-        <p className="text-lg md:text-xl font-bold text-white leading-snug line-clamp-3">
+    <div className="text-center w-full h-full flex flex-col items-center justify-center p-2">
+      <div className="max-w-[200px] w-full">
+        <h3 className="text-xs text-indigo-400 font-bold mb-1 uppercase tracking-wide">Current Story</h3>
+        <p className="text-sm font-medium text-white leading-snug line-clamp-2">
           {currentStory.title}
         </p>
       </div>
 
-      <div className="flex flex-col items-center mt-4">
-        <div className="text-2xl md:text-3xl font-bold text-indigo-400 bg-slate-900/50 w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center border-2 border-slate-700 shadow-inner">
+      <div className="flex flex-col items-center mt-3">
+        <div className="text-2xl font-bold text-white bg-indigo-600 w-10 h-10 rounded-full flex items-center justify-center shadow-lg shadow-indigo-500/30 border-2 border-indigo-400">
           {Object.keys(currentStory.votes).length}
         </div>
-        <div className="text-[10px] md:text-xs text-slate-500 uppercase tracking-wider mt-1">Votes</div>
+        <div className="text-[9px] text-slate-500 uppercase tracking-wider mt-1 font-bold">Votes Cast</div>
       </div>
 
       {isScrumMaster ? (
         <Button
-          size="md"
+          size="sm"
           onClick={onReveal}
           disabled={Object.keys(currentStory.votes).length === 0}
-          className="shadow-[0_0_20px_rgba(79,70,229,0.4)] font-bold tracking-wide mt-2"
+          className="shadow-lg shadow-indigo-500/20 font-bold tracking-wide mt-3 text-xs py-1.5"
         >
           REVEAL CARDS
         </Button>
       ) : (
-        <p className="text-xs md:text-sm text-slate-500 animate-pulse mt-2">
-          {Object.keys(currentStory.votes).length > 0 ? "Waiting for reveal..." : "Cast your vote below..."}
+        <p className="text-xs text-slate-500 animate-pulse mt-3">
+          {Object.keys(currentStory.votes).length > 0 ? "Waiting..." : "Vote now"}
         </p>
       )}
     </div>
@@ -286,7 +275,6 @@ const PokerTable: React.FC<PokerTableProps> = ({
   lastReaction,
   onReaction
 }) => {
-  const [manualFinalScore, setManualFinalScore] = useState<string | number | null>(null);
   const [showGameHub, setShowGameHub] = useState(false);
   const [showWhiteboard, setShowWhiteboard] = useState(false);
   const prevRevealed = useRef(areVotesRevealed);
@@ -347,7 +335,6 @@ const PokerTable: React.FC<PokerTableProps> = ({
 
   const handleFinalize = (val: string | number) => {
     onNext(val);
-    setManualFinalScore(null);
   };
 
   const handleReaction = (emoji: string) => {
@@ -366,8 +353,6 @@ const PokerTable: React.FC<PokerTableProps> = ({
       
       {/* Game Hub & Whiteboard Toggles */}
       <div className="absolute z-40 top-4 right-4 flex flex-col md:flex-row gap-3 md:gap-4 items-center">
-          
-          {/* Whiteboard Button */}
           <button 
             onClick={() => setShowWhiteboard(true)}
             className="bg-emerald-600 hover:bg-emerald-500 text-white rounded-full flex items-center justify-center shadow-lg transition-transform hover:scale-110 w-10 h-10 md:w-10 md:h-10"
@@ -376,7 +361,6 @@ const PokerTable: React.FC<PokerTableProps> = ({
             <span className="text-xl">✏️</span>
           </button>
 
-          {/* Game Hub Button */}
           <button 
             onClick={() => setShowGameHub(true)}
             className="bg-indigo-600 hover:bg-indigo-500 text-white rounded-full flex items-center justify-center shadow-lg transition-transform hover:rotate-12 hover:scale-110 w-10 h-10 md:w-10 md:h-10"
@@ -389,12 +373,8 @@ const PokerTable: React.FC<PokerTableProps> = ({
 
       {/* =================================================================================
           MOBILE LAYOUT (< md)
-          Vertical scrollable layout: Controls -> Table Card -> User Grid
-          UPDATED: Grid items are now vertically stacked with no overlap to prevent blocking.
          ================================================================================= */}
       <div className="md:hidden flex flex-col h-full w-full overflow-y-auto p-4 pb-32 scrollbar-hide">
-        
-        {/* 1. Top Controls Row */}
         <div className="flex justify-between items-start mb-4 gap-2">
           <Timer 
              timer={timer} 
@@ -404,13 +384,11 @@ const PokerTable: React.FC<PokerTableProps> = ({
              onAddMinutes={onAddMinutes}
              canControl={isScrumMaster} 
           />
-          
           <div className="flex flex-col items-end gap-1 relative z-50 mr-12">
              <ReactionBar onReaction={handleReaction} />
           </div>
         </div>
 
-        {/* 2. The "Table" Card (Story Info) */}
         <div className="bg-slate-800/60 border border-slate-700 rounded-2xl p-4 shadow-lg backdrop-blur-sm mb-6 flex flex-col items-center justify-center min-h-[220px]">
            <TableSurfaceContent 
               currentStory={currentStory}
@@ -423,21 +401,15 @@ const PokerTable: React.FC<PokerTableProps> = ({
            />
         </div>
 
-        {/* 3. User Grid (3 Columns) - STACKED LAYOUT */}
         <div className="grid grid-cols-3 gap-3 p-2">
            {users.map(user => {
               const hasVoted = currentStory?.votes?.[user.id] !== undefined;
               const voteValue = currentStory?.votes?.[user.id];
-              
               return (
                 <div key={user.id} className="flex flex-col items-center gap-2 p-3 rounded-xl bg-slate-800/40 border border-slate-700/50 shadow-sm relative overflow-hidden group">
-                   
-                   {/* Voting Status Background Highlight */}
                    {hasVoted && !areVotesRevealed && (
                        <div className="absolute inset-0 bg-indigo-500/5 animate-pulse pointer-events-none" />
                    )}
-                   
-                   {/* Card Area - No Overlap */}
                    <div className={`relative z-10 transition-all duration-300 h-14 flex items-center justify-center ${hasVoted ? 'opacity-100 transform scale-100' : 'opacity-40 grayscale transform scale-95'}`}>
                       {hasVoted ? (
                         <Card 
@@ -450,17 +422,9 @@ const PokerTable: React.FC<PokerTableProps> = ({
                         <div className="w-8 h-12 rounded-md border-2 border-dashed border-slate-600 bg-slate-800/50"></div>
                       )}
                    </div>
-
-                   {/* User Identity - Below Card */}
                    <div className="flex items-center gap-1.5 w-full justify-center z-10">
                       <div className="relative w-6 h-6 rounded-full bg-slate-700 border border-slate-500 flex items-center justify-center text-xs shadow-md shrink-0">
                          {user.avatar}
-                         {user.role === UserRole.SCRUM_MASTER && (
-                            <div className="absolute -top-1.5 -right-1.5 bg-slate-800 rounded-full p-0.5 border border-slate-600 text-[10px] z-20 shadow-sm" title="Scrum Master">👨‍🍳</div>
-                         )}
-                         {user.role === UserRole.PRODUCT_OWNER && (
-                            <div className="absolute -top-1.5 -right-1.5 bg-slate-900 rounded-full p-0.5 border border-amber-500 text-[10px] z-20 shadow-sm" title="Product Owner">👑</div>
-                         )}
                       </div>
                       <div className="text-[10px] text-slate-300 font-medium truncate max-w-[4rem]">
                          {user.name}
@@ -475,13 +439,11 @@ const PokerTable: React.FC<PokerTableProps> = ({
 
       {/* =================================================================================
           DESKTOP LAYOUT (>= md)
-          Absolute positioning with circular table metaphor.
-          UPDATED: Uses two concentric circles. Inner for cards, Outer for users.
-          FIXED: Prevent overlapping by increasing radius and decreasing table size.
+          Expanded layout to prevent overlap
          ================================================================================= */}
-      <div className="hidden md:flex w-full h-full items-center justify-center relative overflow-hidden">
+      <div className="hidden md:flex w-full h-full items-center justify-center relative overflow-hidden select-none">
           
-          {/* Top Bar Controls */}
+          {/* Controls */}
           <div className="absolute top-4 left-0 right-0 flex justify-center items-start pointer-events-none z-30">
             <div className="flex flex-col items-center gap-4 pointer-events-auto">
                 <Timer 
@@ -492,16 +454,15 @@ const PokerTable: React.FC<PokerTableProps> = ({
                     onAddMinutes={onAddMinutes}
                     canControl={isScrumMaster} 
                 />
-                
                 <ReactionBar onReaction={handleReaction} />
             </div>
           </div>
 
-          {/* Main Table Container */}
-          <div className="relative w-full max-w-6xl aspect-[16/9] max-h-[85vh] flex items-center justify-center">
+          {/* Table Container - Fixed height to prevent crushing on short screens */}
+          <div className="relative w-full max-w-7xl h-[650px] flex items-center justify-center">
               
-              {/* Table Surface - Reduced size to 35% width to give cards more room */}
-              <div className="absolute w-[35%] h-[50%] bg-slate-800/80 rounded-[4rem] border-4 border-slate-700 shadow-[0_0_60px_rgba(0,0,0,0.4)] backdrop-blur-md flex flex-col items-center justify-center z-0 overflow-hidden p-2">
+              {/* Table Surface - Small and central */}
+              <div className="absolute w-[320px] h-[180px] bg-slate-800 rounded-3xl border-8 border-slate-700 shadow-2xl flex flex-col items-center justify-center z-0 overflow-hidden p-1">
                   <TableSurfaceContent 
                     currentStory={currentStory}
                     areVotesRevealed={areVotesRevealed}
@@ -513,40 +474,40 @@ const PokerTable: React.FC<PokerTableProps> = ({
                   />
               </div>
 
-              {/* Seats (Outer Circle) & Cards (Inner Circle) */}
+              {/* Orbits */}
               {users.map((user, index) => {
                   const totalUsers = users.length;
                   const angleStep = (2 * Math.PI) / totalUsers;
-                  // Start from bottom (-PI/2 is top, so +PI/2 is bottom)
-                  // Actually let's start from top (-PI/2)
+                  // -PI/2 is Top. 
                   const angle = angleStep * index - Math.PI / 2; 
                   
-                  // Radii adjustments for spacing
-                  // Table is approx 17.5% radius (35% width). 
-                  // Place cards at ~28% radius
-                  // Place users at ~42% radius
-                  
-                  const seatRadiusX = 42; 
-                  const seatRadiusY = 42; 
-                  const seatLeft = 50 + seatRadiusX * Math.cos(angle);
-                  const seatTop = 50 + seatRadiusY * Math.sin(angle);
+                  // Ellipse Radii (Width, Height)
+                  const outerRx = 500; 
+                  const outerRy = 280; 
 
-                  // Card Position (Inner Circle)
-                  // Move closer to users but distinct from table
-                  const cardRadiusX = 30; 
-                  const cardRadiusY = 30; 
-                  const cardLeft = 50 + cardRadiusX * Math.cos(angle);
-                  const cardTop = 50 + cardRadiusY * Math.sin(angle);
+                  const innerRx = 320; 
+                  const innerRy = 190; 
+
+                  // Calculate positions from center (0,0)
+                  const seatX = outerRx * Math.cos(angle);
+                  const seatY = outerRy * Math.sin(angle);
+
+                  const cardX = innerRx * Math.cos(angle);
+                  const cardY = innerRy * Math.sin(angle);
 
                   const hasVoted = currentStory?.votes?.[user.id] !== undefined;
                   const voteValue = currentStory?.votes?.[user.id];
 
                   return (
                       <React.Fragment key={user.id}>
-                          {/* 1. The Card (Inner Circle) */}
+                          {/* 1. The Card (Inner Orbit) */}
                           <div 
                               className={`absolute z-20 transition-all duration-500 flex justify-center items-center ${hasVoted ? 'opacity-100 scale-100' : 'opacity-0 scale-50'}`}
-                              style={{ left: `${cardLeft}%`, top: `${cardTop}%`, transform: 'translate(-50%, -50%)' }}
+                              style={{ 
+                                  left: `calc(50% + ${cardX}px)`, 
+                                  top: `calc(50% + ${cardY}px)`, 
+                                  transform: 'translate(-50%, -50%)' 
+                              }}
                           >
                               <Card 
                                   value={voteValue || ''} 
@@ -556,23 +517,25 @@ const PokerTable: React.FC<PokerTableProps> = ({
                               />
                           </div>
 
-                          {/* 2. The User Seat (Outer Circle) */}
+                          {/* 2. The User Seat (Outer Orbit) */}
                           <div 
-                              className="absolute w-24 flex flex-col items-center justify-center z-30 transition-all duration-500"
-                              style={{ left: `${seatLeft}%`, top: `${seatTop}%`, transform: 'translate(-50%, -50%)' }}
+                              className="absolute w-28 flex flex-col items-center justify-center z-30 transition-all duration-500"
+                              style={{ 
+                                  left: `calc(50% + ${seatX}px)`, 
+                                  top: `calc(50% + ${seatY}px)`, 
+                                  transform: 'translate(-50%, -50%)' 
+                              }}
                           >
-                              {/* Avatar */}
-                              <div className={`relative w-14 h-14 rounded-full border-2 flex items-center justify-center text-2xl bg-slate-800 shadow-lg transition-colors ${hasVoted ? 'border-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.5)]' : 'border-slate-600'} ${!user.isOnline ? 'grayscale opacity-50' : ''}`}>
+                              <div className={`relative w-16 h-16 rounded-full border-4 flex items-center justify-center text-2xl bg-slate-800 shadow-xl transition-colors ${hasVoted ? 'border-emerald-500 shadow-emerald-500/20' : 'border-slate-600'} ${!user.isOnline ? 'grayscale opacity-50' : ''}`}>
                                   {user.avatar}
                                   {user.role === UserRole.SCRUM_MASTER && (
-                                      <div className="absolute -top-2 -right-2 w-7 h-7 flex items-center justify-center bg-slate-800 rounded-full border-2 border-slate-600 text-lg shadow-md z-20" title="Scrum Master">👨‍🍳</div>
+                                      <div className="absolute -top-2 -right-2 w-6 h-6 flex items-center justify-center bg-indigo-600 rounded-full border-2 border-indigo-400 text-xs shadow-md z-20" title="Scrum Master">★</div>
                                   )}
                                   {user.role === UserRole.PRODUCT_OWNER && (
-                                      <div className="absolute -top-2 -right-2 w-7 h-7 flex items-center justify-center bg-slate-900 rounded-full border-2 border-amber-500 text-lg shadow-md z-20" title="Product Owner">👑</div>
+                                      <div className="absolute -top-2 -right-2 w-6 h-6 flex items-center justify-center bg-amber-500 rounded-full border-2 border-amber-300 text-xs shadow-md z-20" title="Product Owner">👑</div>
                                   )}
                               </div>
-                              {/* Name Tag */}
-                              <div className="mt-2 px-2 py-0.5 bg-slate-900/90 rounded text-xs font-medium text-slate-300 whitespace-nowrap truncate max-w-[120px] border border-slate-700 shadow-sm">
+                              <div className="mt-2 px-3 py-1 bg-slate-800/90 rounded-full text-xs font-bold text-slate-300 whitespace-nowrap truncate max-w-[140px] border border-slate-600 shadow-lg">
                                   {user.name}
                               </div>
                           </div>
