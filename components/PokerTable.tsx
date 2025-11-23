@@ -1,3 +1,4 @@
+
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 // @ts-ignore
 import confetti from 'canvas-confetti';
@@ -47,6 +48,12 @@ const PokerTable: React.FC<PokerTableProps> = ({
   const [showArcade, setShowArcade] = useState(false);
   const prevRevealed = useRef(areVotesRevealed);
   
+  // Calculate counts for display
+  const developerCount = users.filter(u => u.role === UserRole.DEVELOPER).length;
+  const votesCastCount = currentStory?.votes 
+      ? users.filter(u => u.role === UserRole.DEVELOPER && currentStory.votes[u.id] !== undefined).length 
+      : 0;
+
   // Trigger confetti and sound when votes revealed
   useEffect(() => {
     if (areVotesRevealed && !prevRevealed.current) {
@@ -319,7 +326,7 @@ const PokerTable: React.FC<PokerTableProps> = ({
                        </h2>
                        {currentStory && (
                            <p className="text-slate-400 text-xs sm:text-sm mt-1">
-                               {Object.keys(currentStory.votes || {}).length} votes cast
+                               <span className="text-white font-medium">{votesCastCount}</span> / <span className="text-white font-medium">{developerCount}</span> votes cast
                            </p>
                        )}
                        {isScrumMaster && currentStory && (
