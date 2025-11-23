@@ -59,7 +59,7 @@ const App: React.FC = () => {
   };
 
   // Sync with Simulated Backend
-  const { state, dispatch, isConnected } = useAppStore(currentUser);
+  const { state, dispatch, isConnected, isDemoMode } = useAppStore(currentUser);
   
   // Derived State
   const currentStory = state.stories.find(s => s.id === state.currentStoryId) || null;
@@ -180,14 +180,21 @@ const App: React.FC = () => {
           ))}
       </div>
 
-      {/* Disconnected Banner */}
-      { !isConnected && (
+      {/* Connection Status Banner */}
+      { !isConnected && !isDemoMode && (
         <div className="bg-red-600 text-white text-center py-1 z-[60] text-sm font-bold animate-pulse flex justify-center items-center gap-2">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
             <span>Connection lost. Reconnecting...</span>
             <button onClick={() => window.location.reload()} className="underline hover:text-red-100 ml-2 text-xs border border-white/30 px-2 py-0.5 rounded">
                 Reload
             </button>
+        </div>
+      )}
+      
+      {/* Offline Demo Mode Banner */}
+      { isDemoMode && (
+        <div className="bg-indigo-900/80 text-indigo-200 text-center py-1 z-[60] text-xs font-semibold backdrop-blur-sm border-b border-indigo-500/30">
+            📡 Offline Demo Mode (No Firebase Keys Configured) — Changes will not be saved.
         </div>
       )}
 

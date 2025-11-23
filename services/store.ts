@@ -2,7 +2,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { AppState, Action, User, Story, UserRole, TimerState, Reaction } from '../types';
 import { db } from '../firebaseConfig';
-import { STALE_USER_TIMEOUT } from '../constants';
 // We import firebase to access types if needed, although 'db' is typed from config usually.
 // In v8, we operate directly on the 'db' object references.
 import firebase from 'firebase/compat/app';
@@ -26,14 +25,29 @@ const initialState: AppState = {
 
 export const useAppStore = (currentUser: User | null) => {
   const [state, setState] = useState<AppState>(initialState);
-  const [isConnected, setIsConnected] = useState(!!db);
+  const [isConnected, setIsConnected] = useState(false);
+  const isDemoMode = !db;
   
   const usersRef = useRef<Record<string, User>>({});
   const roomId = currentUser?.room ? currentUser.room.replace(/[^a-zA-Z0-9]/g, '_') : 'default';
 
-  // 1. LISTEN to Firebase Data
+  // 1. LISTEN to Firebase Data (Only if DB exists)
   useEffect(() => {
-    if (!currentUser || !db) return;
+    if (!currentUser) return;
+    
+    // OFFLINE MODE INITIALIZATION
+    if (!db) {
+        setIsConnected(true); // Fake connection for UI
+        // Add current user to local state immediately
+        setState(prev => ({
+            ...prev,
+            users: {
+                ...prev.users,
+                [currentUser.id]: currentUser
+            }
+        }));
+        return;
+    }
 
     const sessionRef = db.ref(`sessions/${roomId}`);
 
@@ -174,8 +188,108 @@ export const useAppStore = (currentUser: User | null) => {
 
   // 3. DISPATCHER
   const dispatch = useCallback(async (action: Action) => {
-    if (!roomId || !db) return;
-    
+    // --- OFFLINE MODE REDUCER ---
+    if (!db) {
+        setState(prev => {
+            const newState = { ...prev };
+            
+            switch (action.type) {
+                case 'ADD_STORY':
+                    newState.stories = [...newState.stories, action.payload];
+                    break;
+                case 'DELETE_STORY':
+                    newState.stories = newState.stories.filter(s => s.id !== action.payload);
+                    if (newState.currentStoryId === action.payload) {
+                        newState.currentStoryId = null;
+                        newState.areVotesRevealed = false;
+                    }
+                    break;
+                case 'SET_CURRENT_STORY':
+                    newState.currentStoryId = action.payload;
+                    newState.areVotesRevealed = false;
+                    newState.stories = newState.stories.map(s => 
+                        s.id === action.payload ? { ...s, status: 'active' } : s
+                    );
+                    break;
+                case 'VOTE':
+                    if (newState.currentStoryId) {
+                        newState.stories = newState.stories.map(s => {
+                            if (s.id === newState.currentStoryId) {
+                                return { ...s, votes: { ...s.votes, [action.payload.userId]: action.payload.value } };
+                            }
+                            return s;
+                        });
+                    }
+                    break;
+                case 'REVEAL_VOTES':
+                    newState.areVotesRevealed = true;
+                    break;
+                case 'RESET_VOTES':
+                    if (newState.currentStoryId) {
+                        newState.stories = newState.stories.map(s => {
+                            if (s.id === newState.currentStoryId) {
+                                return { ...s, votes: {} };
+                            }
+                            return s;
+                        });
+                        newState.areVotesRevealed = false;
+                    }
+                    break;
+                case 'FINISH_STORY':
+                    newState.stories = newState.stories.map(s => {
+                        if (s.id === action.payload.storyId) {
+                            return { ...s, status: 'completed', finalPoints: action.payload.points };
+                        }
+                        return s;
+                    });
+                    if (newState.currentStoryId === action.payload.storyId) {
+                        newState.currentStoryId = null;
+                        newState.areVotesRevealed = false;
+                    }
+                    break;
+                case 'SEND_MESSAGE':
+                    newState.chatMessages = [...newState.chatMessages, action.payload];
+                    break;
+                case 'SEND_REACTION':
+                    newState.lastReaction = {
+                        id: crypto.randomUUID(),
+                        userId: action.payload.userId,
+                        emoji: action.payload.emoji,
+                        timestamp: Date.now()
+                    };
+                    break;
+                case 'START_TIMER':
+                    newState.timer = { ...newState.timer, status: 'running', startTime: Date.now() };
+                    break;
+                case 'PAUSE_TIMER':
+                    const elapsed = newState.timer.startTime ? Date.now() - newState.timer.startTime : 0;
+                    newState.timer = { ...newState.timer, status: 'paused', startTime: null, accumulated: newState.timer.accumulated + elapsed };
+                    break;
+                case 'RESET_TIMER':
+                    newState.timer = { status: 'paused', startTime: null, accumulated: 0 };
+                    break;
+                 case 'ADD_TIME':
+                    newState.timer = { ...newState.timer, accumulated: newState.timer.accumulated + action.payload };
+                    break;
+                case 'END_SESSION':
+                    newState.stories = [];
+                    newState.chatMessages = [];
+                    newState.currentStoryId = null;
+                    newState.sessionStatus = 'ended';
+                    break;
+                case 'REMOVE_USER':
+                     const newUsers = { ...newState.users };
+                     delete newUsers[action.payload];
+                     newState.users = newUsers;
+                     break;
+            }
+            return newState;
+        });
+        return;
+    }
+
+    // --- ONLINE MODE (Firebase) ---
+    if (!roomId) return;
     const rootPath = `sessions/${roomId}`;
 
     switch (action.type) {
@@ -296,8 +410,6 @@ export const useAppStore = (currentUser: User | null) => {
          break;
       
       case 'ADD_TIME':
-         // Simply add to accumulated time. This works regardless of paused/running state
-         // to offset the displayed time.
          await db.ref(`${rootPath}/timer`).update({
              accumulated: (state.timer.accumulated || 0) + action.payload
          });
@@ -322,5 +434,5 @@ export const useAppStore = (currentUser: User | null) => {
     }
   }, [roomId, state]);
 
-  return { state, dispatch, isConnected };
+  return { state, dispatch, isConnected, isDemoMode };
 };
