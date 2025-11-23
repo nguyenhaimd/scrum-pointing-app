@@ -6,7 +6,7 @@ import Card from './Card';
 import Button from './Button';
 import Timer from './Timer';
 import ReactionOverlay from './ReactionOverlay';
-import TicTacToe from './TicTacToe';
+import Arcade from './Arcade';
 import { POINTING_SCALE, REACTION_EMOJIS, WOW_EMOJI } from '../constants';
 import { playSound } from '../services/soundService';
 
@@ -44,7 +44,7 @@ const PokerTable: React.FC<PokerTableProps> = ({
   onReaction
 }) => {
   const [manualFinalScore, setManualFinalScore] = useState<string | number | null>(null);
-  const [showGame, setShowGame] = useState(false);
+  const [showArcade, setShowArcade] = useState(false);
   const prevRevealed = useRef(areVotesRevealed);
   
   // Trigger confetti and sound when votes revealed
@@ -150,11 +150,11 @@ const PokerTable: React.FC<PokerTableProps> = ({
                 canControl={isScrumMaster}
              />
              <button
-               onClick={() => setShowGame(true)}
+               onClick={() => setShowArcade(true)}
                className="p-2 bg-slate-800/50 hover:bg-slate-700 border border-slate-700 rounded-full text-slate-300 hover:text-indigo-400 transition-colors"
-               title="Play Tic-Tac-Toe"
+               title="Open Arcade"
               >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z"></path></svg>
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
              </button>
           </div>
           
@@ -403,8 +403,8 @@ const PokerTable: React.FC<PokerTableProps> = ({
            </div>
        </div>
        
-       {/* Mini Game Modal */}
-       {showGame && <TicTacToe onClose={() => setShowGame(false)} />}
+       {/* Arcade Modal */}
+       {showArcade && <Arcade onClose={() => setShowArcade(false)} />}
     </div>
   );
 };

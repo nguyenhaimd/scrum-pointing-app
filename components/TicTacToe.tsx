@@ -3,9 +3,10 @@ import Button from './Button';
 
 interface TicTacToeProps {
   onClose: () => void;
+  onBack?: () => void;
 }
 
-const TicTacToe: React.FC<TicTacToeProps> = ({ onClose }) => {
+const TicTacToe: React.FC<TicTacToeProps> = ({ onClose, onBack }) => {
   const [board, setBoard] = useState<(string | null)[]>(Array(9).fill(null));
   const [xIsNext, setXIsNext] = useState(true); // Human is X and always goes first
   const [gameStatus, setGameStatus] = useState<'playing' | 'won' | 'draw'>('playing');
@@ -118,25 +119,31 @@ const TicTacToe: React.FC<TicTacToeProps> = ({ onClose }) => {
   }
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/80 backdrop-blur-sm animate-fade-in p-4">
-      <div className="bg-slate-800 border border-slate-700 rounded-2xl shadow-2xl p-6 max-w-sm w-full flex flex-col items-center">
-        <div className="flex justify-between items-center w-full mb-4">
-            <h3 className="text-xl font-bold text-indigo-400">Man vs Machine</h3>
+    <div className="flex flex-col items-center animate-fade-in w-full">
+        <div className="flex justify-between items-center w-full mb-6">
+            <div className="flex items-center gap-2">
+                {onBack && (
+                    <button onClick={onBack} className="p-1 hover:bg-slate-700 rounded-full text-slate-400 hover:text-white transition-colors">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                    </button>
+                )}
+                <h3 className="text-xl font-bold text-indigo-400">Tic-Tac-Toe</h3>
+            </div>
             <button onClick={onClose} className="text-slate-400 hover:text-white">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>
         </div>
 
-        <div className="grid grid-cols-3 gap-2 mb-6">
+        <div className="grid grid-cols-3 gap-3 mb-6 bg-slate-700/30 p-3 rounded-xl border border-slate-700">
             {board.map((cell, i) => (
                 <button
                     key={i}
                     onClick={() => handleClick(i)}
                     disabled={!!cell || !xIsNext || gameStatus !== 'playing'}
                     className={`
-                        w-20 h-20 rounded-lg text-4xl font-bold flex items-center justify-center transition-all
-                        ${cell === 'X' ? 'text-indigo-400 bg-slate-700/50' : cell === 'O' ? 'text-emerald-400 bg-slate-700/50' : 'bg-slate-700 hover:bg-slate-600'}
-                        ${!cell && xIsNext && gameStatus === 'playing' ? 'cursor-pointer hover:ring-2 hover:ring-indigo-500/50' : 'cursor-default'}
+                        w-20 h-20 rounded-lg text-4xl font-bold flex items-center justify-center transition-all shadow-sm
+                        ${cell === 'X' ? 'text-indigo-400 bg-slate-800 ring-2 ring-indigo-500/50' : cell === 'O' ? 'text-emerald-400 bg-slate-800 ring-2 ring-emerald-500/50' : 'bg-slate-800/80 hover:bg-slate-700'}
+                        ${!cell && xIsNext && gameStatus === 'playing' ? 'cursor-pointer hover:scale-105' : 'cursor-default'}
                     `}
                 >
                     {cell}
@@ -144,24 +151,27 @@ const TicTacToe: React.FC<TicTacToeProps> = ({ onClose }) => {
             ))}
         </div>
 
-        <div className="text-lg font-bold mb-4 text-white h-8">
+        <div className="text-lg font-bold mb-6 text-white h-8 text-center">
             {gameStatus === 'won' ? (
-                <span className={winner === 'X' ? 'text-indigo-400' : 'text-emerald-400'}>
+                <span className={`animate-bounce inline-block ${winner === 'X' ? 'text-indigo-400' : 'text-emerald-400'}`}>
                     {winner === 'X' ? 'You Won! 🎉' : 'AI Won 🤖'}
                 </span>
             ) : gameStatus === 'draw' ? (
                 <span className="text-slate-400">It's a Draw!</span>
             ) : (
-                <span className="text-slate-400 text-sm animate-pulse">
-                    {xIsNext ? 'Your Turn (X)' : 'AI Thinking...'}
+                <span className="text-slate-400 text-sm animate-pulse flex items-center gap-2">
+                    {xIsNext ? (
+                        <><span>Your Turn</span> <span className="font-bold text-indigo-400">(X)</span></>
+                    ) : (
+                        <><span>AI Thinking...</span> <span className="font-bold text-emerald-400">(O)</span></>
+                    )}
                 </span>
             )}
         </div>
 
-        <Button onClick={resetGame} variant="secondary" size="sm">
+        <Button onClick={resetGame} variant="secondary" size="sm" className="w-full">
             Restart Game
         </Button>
-      </div>
     </div>
   );
 };
