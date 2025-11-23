@@ -364,7 +364,7 @@ const PokerTable: React.FC<PokerTableProps> = ({
                                         <div className="relative">
                                             <Card 
                                                 value={areVotesRevealed ? vote : ''} 
-                                                faceDown={!areVotesRevealed} 
+                                                faceDown={true}
                                                 revealed={areVotesRevealed}
                                                 size="md"
                                             />

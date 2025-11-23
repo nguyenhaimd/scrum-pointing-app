@@ -53,8 +53,8 @@ const Card: React.FC<CardProps> = ({
 
   if (faceDown) {
       return (
-          <div className={`relative ${sizeClasses[size]} perspective-1000 transition-transform duration-500`} onClick={onClick}>
-              <div className={`relative w-full h-full transition-all duration-700 transform-style-3d ${revealed ? 'rotate-y-180' : ''}`}>
+          <div className={`relative ${sizeClasses[size]} perspective-1000`} onClick={onClick}>
+              <div className={`relative w-full h-full transform-style-3d ${revealed ? 'animate-flip' : 'transition-transform duration-500'}`}>
                   {/* Front (Back of card pattern) */}
                   <div className="absolute inset-0 w-full h-full backface-hidden">
                       {cardBack}
