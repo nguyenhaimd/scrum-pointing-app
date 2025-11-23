@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { POINTING_SCALE } from '../constants';
 import Card from './Card';

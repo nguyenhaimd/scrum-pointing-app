@@ -292,7 +292,6 @@ const App: React.FC = () => {
             {/* Main Visual Area */}
             <PokerTable 
                 users={visibleUsers}
-                currentUser={currentUser}
                 currentStory={currentStory}
                 areVotesRevealed={state.areVotesRevealed}
                 currentUserRole={currentUser.role}
@@ -300,7 +299,6 @@ const App: React.FC = () => {
                 onStartTimer={() => dispatch({ type: 'START_TIMER' })}
                 onPauseTimer={() => dispatch({ type: 'PAUSE_TIMER' })}
                 onResetTimer={() => dispatch({ type: 'RESET_TIMER' })}
-                onAddMinutes={(m) => dispatch({ type: 'ADD_TIME', payload: m * 60000 })}
                 onReveal={() => dispatch({ type: 'REVEAL_VOTES' })}
                 onReset={() => dispatch({ type: 'RESET_VOTES' })}
                 lastReaction={state.lastReaction}

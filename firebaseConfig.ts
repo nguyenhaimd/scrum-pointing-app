@@ -67,12 +67,17 @@ if (!apiKey) missingVars.push('FIREBASE_API_KEY');
 if (!projectId) missingVars.push('FIREBASE_PROJECT_ID');
 
 if (missingVars.length > 0) {
-  console.warn(`
-    ⚠️ FIREBASE MISSING KEYS: Running in OFFLINE DEMO MODE.
-    Data will not persist between reloads.
-    Missing: ${missingVars.join(', ')}
+  console.error(`
+    🔥 FIREBASE CONFIGURATION ERROR:
+    The following environment variables are missing: ${missingVars.join(', ')}
+    
+    To fix this:
+    1. Create a .env file in your project root (or configure your environment settings).
+    2. Add the following keys:
+       FIREBASE_API_KEY=AIzaSy...
+       FIREBASE_PROJECT_ID=your-project-id
+       FIREBASE_DATABASE_URL=https://your-project-id-default-rtdb.firebaseio.com
   `);
-  // We do NOT initialize db here, leaving it undefined will trigger Offline Mode in the store.
 } else {
   try {
     // Initialize Firebase (Check if already initialized)

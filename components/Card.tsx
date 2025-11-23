@@ -1,4 +1,3 @@
-
 import React from 'react';
 
 interface CardProps {
@@ -16,80 +15,67 @@ const Card: React.FC<CardProps> = ({
   onClick, 
   faceDown = false, 
   revealed = false,
-  size = 'md'
+  size = 'md' 
 }) => {
   
   const sizeClasses = {
-    sm: 'w-10 h-16 text-lg rounded-lg',
-    md: 'w-20 h-32 text-4xl rounded-xl',
-    lg: 'w-28 h-44 text-6xl rounded-2xl',
+    sm: 'w-8 h-12 text-sm',
+    md: 'w-14 h-20 text-lg md:w-16 md:h-24 md:text-xl',
+    lg: 'w-24 h-36 text-3xl',
   };
 
-  // Card Container Styles
-  const containerStyles = `relative ${sizeClasses[size]} cursor-pointer select-none perspective-1000 transition-all duration-300 transform-gpu`;
+  // Handling the flip animation state
+  // If faceDown is true, we show the back.
+  // If revealed changes from false to true, the card should flip.
   
-  // Inner Content wrapper
-  const innerStyles = `relative w-full h-full transition-all duration-500 transform-style-3d shadow-2xl ${
-    faceDown && !revealed ? 'rotate-y-180' : 'rotate-y-0'
-  } ${isSelected ? '-translate-y-6 shadow-indigo-500/40' : 'hover:-translate-y-2 hover:shadow-black/50'}`;
+  const cardContent = (
+    <div className={`
+      absolute inset-0 w-full h-full rounded-xl border-2 flex items-center justify-center font-bold shadow-md
+      transition-all duration-200
+      ${isSelected ? 'bg-indigo-600 border-indigo-400 text-white -translate-y-4 shadow-indigo-500/50' : 'bg-slate-800 border-slate-600 text-slate-200 hover:bg-slate-700 hover:border-slate-500'}
+      ${faceDown && !revealed ? 'hidden' : 'block'}
+    `}>
+      {value}
+    </div>
+  );
 
-  // Front Face (The Value)
-  const frontFace = `
-    absolute inset-0 w-full h-full backface-hidden 
-    bg-gradient-to-br from-white via-slate-50 to-slate-200
-    border-[1px] flex items-center justify-center font-black text-slate-800
-    ${isSelected ? 'border-indigo-500 ring-4 ring-indigo-500/30' : 'border-white/40'}
-    ${sizeClasses[size]}
-    overflow-hidden shadow-inner
-  `;
+  const cardBack = (
+    <div className={`
+      absolute inset-0 w-full h-full rounded-xl border-2 border-slate-700 bg-slate-900
+      flex items-center justify-center
+      bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]
+    `}>
+      <div className="w-8 h-8 rounded-full bg-indigo-900/50 flex items-center justify-center">
+        <span className="text-indigo-500 font-bold">G</span>
+      </div>
+    </div>
+  );
 
-  // Back Face (The Pattern)
-  const backFace = `
-    absolute inset-0 w-full h-full backface-hidden rotate-y-180
-    bg-gradient-to-br from-indigo-600 via-indigo-700 to-violet-800 
-    border-[2px] border-indigo-400/30
-    flex items-center justify-center ${sizeClasses[size]}
-    shadow-inner
-  `;
+  if (faceDown) {
+      return (
+          <div className={`relative ${sizeClasses[size]} perspective-1000 transition-transform duration-500`} onClick={onClick}>
+              <div className={`relative w-full h-full transition-all duration-700 transform-style-3d ${revealed ? 'rotate-y-180' : ''}`}>
+                  {/* Front (Back of card pattern) */}
+                  <div className="absolute inset-0 w-full h-full backface-hidden">
+                      {cardBack}
+                  </div>
+                  {/* Back (Actual Value) - Rotated 180 initially so when parent rotates 180 it becomes visible */}
+                  <div className="absolute inset-0 w-full h-full backface-hidden rotate-y-180 rounded-xl overflow-hidden bg-slate-800 border-2 border-indigo-500 text-white flex items-center justify-center font-bold shadow-lg">
+                      {value}
+                  </div>
+              </div>
+          </div>
+      )
+  }
 
   return (
-    <div className={containerStyles} onClick={onClick}>
-      <div className={innerStyles}>
-        
-        {/* Front of Card (Value) */}
-        <div className={frontFace}>
-            {/* Subtle noise texture */}
-            <div className="absolute inset-0 opacity-[0.03]" 
-                 style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }}
-            ></div>
-            
-            {/* Corner Numbers */}
-            {(size === 'md' || size === 'lg') && (
-              <>
-                <span className="absolute top-1 left-1.5 text-[0.3em] font-bold opacity-40">{value}</span>
-                <span className="absolute bottom-1 right-1.5 text-[0.3em] font-bold opacity-40 rotate-180">{value}</span>
-              </>
-            )}
-            
-            <span className="relative z-10 drop-shadow-md transform scale-110 tracking-tighter">{value}</span>
-        </div>
-
-        {/* Back of Card (Pattern) */}
-        <div className={backFace}>
-           {/* Geometric Pattern */}
-           <div className="absolute inset-0 opacity-20" 
-                style={{ 
-                    backgroundImage: 'radial-gradient(circle at center, transparent 0%, #000 100%), repeating-linear-gradient(45deg, rgba(255,255,255,0.1) 0px, rgba(255,255,255,0.1) 2px, transparent 2px, transparent 10px)'
-                }}
-           ></div>
-           
-           {/* Center Logo/Icon */}
-           <div className="relative w-1/2 h-1/2 rounded-full border border-white/20 flex items-center justify-center bg-white/5 backdrop-blur-md shadow-lg">
-              <span className="text-xl opacity-80">♠️</span>
-           </div>
-        </div>
-
-      </div>
+    <div 
+      onClick={onClick}
+      className={`
+        relative ${sizeClasses[size]} cursor-pointer select-none transition-transform
+      `}
+    >
+      {cardContent}
     </div>
   );
 };
