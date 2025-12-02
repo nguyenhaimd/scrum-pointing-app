@@ -1,7 +1,6 @@
-
 import { UserRole } from './types';
 
-export const POINTING_SCALE = [0, 1, 2, 3, 5, 8, 13, '?', '☕'];
+export const POINTING_SCALE = [1, 2, 3, 5, 8, 13, '☕'];
 
 export const ROLES = [
   { label: 'Developer', value: UserRole.DEVELOPER, description: 'Votes on stories' },
