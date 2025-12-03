@@ -143,6 +143,6 @@ export const playSound = {
     },
 
     leave: () => {
-        // Silent
+        // Silent as requested
     }
 };

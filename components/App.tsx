@@ -331,7 +331,7 @@ const App: React.FC = () => {
                 }}
             />
 
-            {/* Voting Hand (Disabled if story is completed) */}
+            {/* Voting Hand (Disabled if story is completed) will this work ?*/}
             {currentStory?.status !== 'completed' && (
                 <VotingControls 
                     currentStory={currentStory}
