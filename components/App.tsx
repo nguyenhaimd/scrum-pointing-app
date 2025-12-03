@@ -46,7 +46,7 @@ const App: React.FC = () => {
         setMuted(muted);
     }
 
-    // Update 'now' every 5 seconds to update disconnected states more frequently
+    // Update 'now' frequently to handle grace period expirations smoothly
     const interval = setInterval(() => setNow(Date.now()), 5000);
     return () => clearInterval(interval);
   }, []);
@@ -86,7 +86,7 @@ const App: React.FC = () => {
       });
   }, [state.users, now]);
 
-  // Actual online count logic
+  // Header Stats
   const totalVisible = visibleUsers.length;
   const onlineCount = visibleUsers.filter(u => u.isOnline).length;
   const disconnectedCount = totalVisible - onlineCount;
@@ -273,6 +273,28 @@ const App: React.FC = () => {
         </div>
       </header>
 
+      {/* Mobile Tabs Navigation */}
+      <div className="md:hidden flex border-b border-slate-700 bg-slate-800 shrink-0 text-sm font-medium">
+          <button 
+            onClick={() => setMobileView('stories')}
+            className={`flex-1 py-3 text-center border-b-2 ${mobileView === 'stories' ? 'border-indigo-500 text-indigo-400 bg-slate-700/30' : 'border-transparent text-slate-400'}`}
+          >
+            Stories
+          </button>
+          <button 
+            onClick={() => setMobileView('table')}
+            className={`flex-1 py-3 text-center border-b-2 ${mobileView === 'table' ? 'border-indigo-500 text-indigo-400 bg-slate-700/30' : 'border-transparent text-slate-400'}`}
+          >
+            Table
+          </button>
+          <button 
+            onClick={() => setMobileView('chat')}
+            className={`flex-1 py-3 text-center border-b-2 ${mobileView === 'chat' ? 'border-indigo-500 text-indigo-400 bg-slate-700/30' : 'border-transparent text-slate-400'}`}
+          >
+            Chat
+          </button>
+      </div>
+
       {/* Main Content Grid */}
       <div className="flex-1 flex overflow-hidden relative">
         
@@ -360,34 +382,6 @@ const App: React.FC = () => {
         </div>
 
       </div>
-
-      {/* Persistent Bottom Mobile Navigation */}
-      <div className="md:hidden bg-slate-800 border-t border-slate-700 flex justify-around items-center shrink-0 z-50">
-          <button 
-            onClick={() => setMobileView('stories')}
-            className={`flex flex-col items-center justify-center w-full py-2 pb-safe transition-colors active:bg-slate-700/50 ${mobileView === 'stories' ? 'text-indigo-400' : 'text-slate-500 hover:text-slate-300'}`}
-          >
-            <svg className="w-6 h-6 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
-            <span className="text-[10px] font-bold tracking-wide">Stories</span>
-          </button>
-          
-          <button 
-            onClick={() => setMobileView('table')}
-            className={`flex flex-col items-center justify-center w-full py-2 pb-safe transition-colors active:bg-slate-700/50 ${mobileView === 'table' ? 'text-indigo-400' : 'text-slate-500 hover:text-slate-300'}`}
-          >
-            <svg className="w-6 h-6 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-            <span className="text-[10px] font-bold tracking-wide">Table</span>
-          </button>
-          
-          <button 
-            onClick={() => setMobileView('chat')}
-            className={`flex flex-col items-center justify-center w-full py-2 pb-safe transition-colors active:bg-slate-700/50 ${mobileView === 'chat' ? 'text-indigo-400' : 'text-slate-500 hover:text-slate-300'}`}
-          >
-            <svg className="w-6 h-6 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
-            <span className="text-[10px] font-bold tracking-wide">Chat</span>
-          </button>
-      </div>
-
     </div>
   );
 };
