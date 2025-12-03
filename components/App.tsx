@@ -101,24 +101,9 @@ const App: React.FC = () => {
           return;
       }
 
-      // Check for left users (Active -> Offline)
-      // Note: We only notify if they completely disappear OR if they go offline. 
-      // But since we keep them in the list now, we detect the state change.
-      
       const prevMap = new Map(prev.map(u => [u.id, u]));
-      const currMap = new Map(curr.map(u => [u.id, u]));
 
-      // 1. Detect Status Change: Online -> Offline
-      curr.forEach(u => {
-          const oldU = prevMap.get(u.id);
-          if (oldU && oldU.isOnline && !u.isOnline) {
-              if (u.id !== currentUser?.id) {
-                  addToast(`${u.name} disconnected`, 'info', false);
-              }
-          }
-      });
-
-      // 2. Detect New Joins
+      // 1. Detect New Joins
       curr.forEach(u => {
            if (!prevMap.has(u.id)) {
               if (u.id !== currentUser?.id) {
@@ -132,6 +117,16 @@ const App: React.FC = () => {
                    addToast(`${u.name} reconnected`, 'info');
                }
            }
+      });
+      
+      // 2. Detect Full Removal (after grace period)
+      prev.forEach(u => {
+          if (!curr.find(c => c.id === u.id)) {
+              if (u.id !== currentUser?.id) {
+                  // They are actually removed from list now
+                  playSound.leave();
+              }
+          }
       });
 
       prevVisibleUsersRef.current = curr;
@@ -362,7 +357,7 @@ const App: React.FC = () => {
 
       </div>
 
-      {/* Mobile Bottom Navigation */}
+      {/* Persistent Bottom Mobile Navigation */}
       <div className="md:hidden bg-slate-800 border-t border-slate-700 flex justify-around items-center shrink-0 z-50">
           <button 
             onClick={() => setMobileView('stories')}
