@@ -73,9 +73,10 @@ const App: React.FC = () => {
           const isStale = (now - u.lastHeartbeat) > STALE_USER_TIMEOUT;
           if (isStale) return false;
 
+          // Always show online users
           if (u.isOnline) return true;
           
-          // If offline, check if they are within the grace period
+          // Show disconnected users if they are within the grace period
           return (now - u.lastHeartbeat) < DISCONNECT_GRACE_PERIOD;
       })
       .sort((a, b) => {
@@ -105,7 +106,7 @@ const App: React.FC = () => {
 
       const prevMap = new Map(prev.map(u => [u.id, u]));
 
-      // 1. Detect New Joins
+      // 1. Detect New Joins & Reconnects
       curr.forEach(u => {
            if (!prevMap.has(u.id)) {
               if (u.id !== currentUser?.id) {
@@ -121,8 +122,8 @@ const App: React.FC = () => {
            }
       });
       
-      // 2. Detect Leaves (Silent now)
-      // We removed the toast and sound for disconnects/leaves as requested
+      // 2. Detect Leaves - REMOVED annoying toast and sound as requested.
+      // The visual state in the PokerTable (greyed out) and the Header (Team Health) is enough.
 
       prevVisibleUsersRef.current = curr;
   }, [visibleUsers, currentUser]);
