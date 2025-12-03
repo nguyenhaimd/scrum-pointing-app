@@ -396,7 +396,12 @@ const PokerTable: React.FC<PokerTableProps> = ({
                            `}>
                                {showCardSlot ? (
                                     hasVoted ? (
-                                        <div className="relative">
+                                        <div className="relative animate-fade-in">
+                                            {/* Subtle Glow for ready state */}
+                                            {!areVotesRevealed && (
+                                                <div className="absolute -inset-1 bg-indigo-500/20 rounded-xl blur-sm animate-pulse"></div>
+                                            )}
+                                            
                                             <Card 
                                                 value={areVotesRevealed ? vote : ''} 
                                                 faceDown={true}
@@ -405,8 +410,8 @@ const PokerTable: React.FC<PokerTableProps> = ({
                                             />
                                             {/* VOTED CHECKMARK BADGE */}
                                             {!areVotesRevealed && !isOffline && (
-                                                <div className="absolute -top-2 -right-2 bg-emerald-500 text-slate-900 rounded-full p-0.5 border-2 border-slate-900 shadow-lg animate-bounce z-10">
-                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
+                                                <div className="absolute -top-2 -right-2 bg-emerald-500 text-slate-900 rounded-full p-0.5 border-2 border-slate-900 shadow-lg z-10 transition-transform hover:scale-110">
+                                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M5 13l4 4L19 7"></path></svg>
                                                 </div>
                                             )}
                                         </div>
