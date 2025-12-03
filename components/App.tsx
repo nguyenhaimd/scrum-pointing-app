@@ -1,4 +1,5 @@
 
+
 import React, { useEffect, useState, useRef, useMemo } from 'react';
 import Login from './components/Login';
 import PokerTable from './components/PokerTable';
@@ -85,8 +86,10 @@ const App: React.FC = () => {
       });
   }, [state.users, now]);
 
-  // Actual online count for header
+  // Actual online count logic
+  const totalVisible = visibleUsers.length;
   const onlineCount = visibleUsers.filter(u => u.isOnline).length;
+  const disconnectedCount = totalVisible - onlineCount;
 
   const prevVisibleUsersRef = useRef<User[]>([]);
 
@@ -119,15 +122,8 @@ const App: React.FC = () => {
            }
       });
       
-      // 2. Detect Full Removal (after grace period)
-      prev.forEach(u => {
-          if (!curr.find(c => c.id === u.id)) {
-              if (u.id !== currentUser?.id) {
-                  // They are actually removed from list now
-                  playSound.leave();
-              }
-          }
-      });
+      // 2. Detect Leaves (Silent now)
+      // We removed the toast and sound for disconnects/leaves as requested
 
       prevVisibleUsersRef.current = curr;
   }, [visibleUsers, currentUser]);
@@ -226,10 +222,17 @@ const App: React.FC = () => {
                 <div className="flex items-center gap-2 text-xs text-slate-400 mt-1">
                    <span>Room: {currentUser.room}</span>
                    <span className="text-slate-600">•</span>
-                   <span className="flex items-center gap-1.5 text-emerald-400 font-medium bg-emerald-900/20 px-1.5 py-0.5 rounded-full">
-                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                       {onlineCount} Online
-                   </span>
+                   {disconnectedCount > 0 ? (
+                       <span className="flex items-center gap-1.5 text-amber-400 font-medium bg-amber-900/20 px-2 py-0.5 rounded-full border border-amber-900/50 animate-pulse">
+                           <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                           Waiting for {disconnectedCount}...
+                       </span>
+                   ) : (
+                       <span className="flex items-center gap-1.5 text-emerald-400 font-medium bg-emerald-900/20 px-2 py-0.5 rounded-full border border-emerald-900/50">
+                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                           All Connected
+                       </span>
+                   )}
                 </div>
             </div>
         </div>

@@ -143,7 +143,6 @@ export const playSound = {
     },
 
     leave: () => {
-        playTone(600, 'sine', 0.2, 0, 0.1);
-        playTone(400, 'sine', 0.2, 0.1, 0.1);
+        // Silent
     }
 };
