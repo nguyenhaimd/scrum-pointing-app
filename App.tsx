@@ -7,7 +7,7 @@ import StoryPanel from './components/StoryPanel';
 import ChatPanel from './components/ChatPanel';
 import { useAppStore } from './services/store';
 import { User } from './types';
-import { USER_STORAGE_KEY, SOUND_PREF_KEY, STALE_USER_TIMEOUT } from './constants';
+import { USER_STORAGE_KEY, SOUND_PREF_KEY, STALE_USER_TIMEOUT, DISCONNECT_GRACE_PERIOD } from './constants';
 import { setMuted, playSound } from './services/soundService';
 
 type MobileView = 'stories' | 'table' | 'chat';
@@ -46,8 +46,8 @@ const App: React.FC = () => {
         setMuted(muted);
     }
 
-    // Update 'now' every minute to check for stale users
-    const interval = setInterval(() => setNow(Date.now()), 60000);
+    // Update 'now' frequently to handle grace period expirations smoothly
+    const interval = setInterval(() => setNow(Date.now()), 5000);
     return () => clearInterval(interval);
   }, []);
 
@@ -64,12 +64,32 @@ const App: React.FC = () => {
   // Derived State
   const currentStory = state.stories.find(s => s.id === state.currentStoryId) || null;
   
-  // Filter only online and non-stale users for display
+  // Filter logic:
+  // 1. Filter out stale users (older than STALE_USER_TIMEOUT)
+  // 2. KEEP disconnected users if they are within the DISCONNECT_GRACE_PERIOD
   const visibleUsers = useMemo(() => {
     return (Object.values(state.users) as User[])
-      .filter(u => u.isOnline && (now - u.lastHeartbeat < STALE_USER_TIMEOUT))
-      .sort((a, b) => a.name.localeCompare(b.name));
+      .filter(u => {
+          const isStale = (now - u.lastHeartbeat) > STALE_USER_TIMEOUT;
+          if (isStale) return false;
+
+          // Always show online users
+          if (u.isOnline) return true;
+          
+          // Show disconnected users if they are within the grace period (so we can see they dropped)
+          return (now - u.lastHeartbeat) < DISCONNECT_GRACE_PERIOD;
+      })
+      .sort((a, b) => {
+          // Sort online users first, then offline users, then by name
+          if (a.isOnline !== b.isOnline) return a.isOnline ? -1 : 1;
+          return a.name.localeCompare(b.name);
+      });
   }, [state.users, now]);
+
+  // Header Stats
+  const totalVisible = visibleUsers.length;
+  const onlineCount = visibleUsers.filter(u => u.isOnline).length;
+  const disconnectedCount = totalVisible - onlineCount;
 
   const prevVisibleUsersRef = useRef<User[]>([]);
 
@@ -85,18 +105,30 @@ const App: React.FC = () => {
           return;
       }
 
-      // Check for joined users (Optional but good UX)
+      const prevMap = new Map(prev.map(u => [u.id, u]));
+
+      // 1. Detect New Joins & Reconnects
       curr.forEach(u => {
-           if (!prev.find(p => p.id === u.id)) {
+           if (!prevMap.has(u.id)) {
               if (u.id !== currentUser?.id) {
                  addToast(`${u.name} joined`, 'info');
                  playSound.join();
               }
+           } else {
+               // Reconnected?
+               const oldU = prevMap.get(u.id);
+               if (oldU && !oldU.isOnline && u.isOnline) {
+                   // Optional: subtle toast for reconnect
+                   // addToast(`${u.name} reconnected`, 'info'); 
+               }
            }
       });
+      
+      // 2. Detect Leaves - Notification REMOVED.
+      // We rely on the visual state in the PokerTable (greyed out) and the Header (Team Health).
 
       prevVisibleUsersRef.current = curr;
-  }, [visibleUsers, currentUser]); // Re-run whenever the visible list changes
+  }, [visibleUsers, currentUser]);
 
   const addToast = (message: string, type: Toast['type'] = 'info', persistent = false) => {
       const id = crypto.randomUUID();
@@ -189,7 +221,21 @@ const App: React.FC = () => {
             </div>
             <div className="hidden sm:block">
                 <h1 className="font-bold text-lg leading-none">HighWind's Scrum Poker</h1>
-                <p className="text-xs text-slate-400">Room: {currentUser.room}</p>
+                <div className="flex items-center gap-2 text-xs text-slate-400 mt-1">
+                   <span>Room: {currentUser.room}</span>
+                   <span className="text-slate-600">•</span>
+                   {disconnectedCount > 0 ? (
+                       <span className="flex items-center gap-1.5 text-amber-400 font-medium bg-amber-900/20 px-2 py-0.5 rounded-full border border-amber-900/50 animate-pulse">
+                           <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                           Waiting for {disconnectedCount}...
+                       </span>
+                   ) : (
+                       <span className="flex items-center gap-1.5 text-emerald-400 font-medium bg-emerald-900/20 px-2 py-0.5 rounded-full border border-emerald-900/50">
+                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                           All Connected
+                       </span>
+                   )}
+                </div>
             </div>
         </div>
         

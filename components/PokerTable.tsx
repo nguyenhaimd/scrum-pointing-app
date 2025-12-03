@@ -147,6 +147,28 @@ const PokerTable: React.FC<PokerTableProps> = ({
   const isScrumMaster = currentUserRole === UserRole.SCRUM_MASTER;
   const isCoffeeTime = areVotesRevealed && stats?.mode === '☕';
 
+  // Helper for displaying offline users status
+  const OfflineStatus = () => {
+    if (offlineDevelopers.length === 0) return null;
+    
+    return (
+      <div className="flex flex-col items-center mt-2 animate-fade-in">
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-800 border border-slate-700/50 shadow-sm">
+           <span className="relative flex h-2 w-2 shrink-0">
+             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+             <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+           </span>
+           <span className="text-xs text-slate-400">
+             Waiting for <span className="text-slate-300 font-medium">{offlineDevelopers.length}</span> user{offlineDevelopers.length > 1 ? 's' : ''}:
+           </span>
+           <span className="text-xs text-indigo-300 font-medium truncate max-w-[200px]">
+             {offlineDevelopers.map(u => u.name).join(', ')}
+           </span>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="flex flex-col h-full bg-slate-900 relative overflow-y-auto overflow-x-hidden">
        <ReactionOverlay lastReaction={lastReaction} />
@@ -209,7 +231,10 @@ const PokerTable: React.FC<PokerTableProps> = ({
            {/* Center Status / Results */}
            <div className="w-full max-w-3xl min-h-[100px] sm:min-h-[120px] flex flex-col items-center justify-center shrink-0">
                {!currentStory ? (
-                   <div className="text-slate-500 text-lg sm:text-xl animate-pulse">Waiting for story...</div>
+                   <div className="flex flex-col items-center gap-2">
+                       <div className="text-slate-500 text-lg sm:text-xl animate-pulse">Waiting for story...</div>
+                       <OfflineStatus />
+                   </div>
                ) : areVotesRevealed && stats ? (
                    isCoffeeTime ? (
                         /* Special Coffee Break View */
@@ -336,12 +361,7 @@ const PokerTable: React.FC<PokerTableProps> = ({
                        )}
                        
                        {/* Offline Developer Warning */}
-                       {offlineDevelopers.length > 0 && currentStory && (
-                           <div className="mt-3 bg-amber-500/10 border border-amber-500/50 rounded-lg p-2 text-xs text-amber-200 flex items-center justify-center gap-2 max-w-sm mx-auto animate-pulse">
-                                <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-                                <span className="truncate">Waiting for connection: {offlineDevelopers.map(u => u.name).join(', ')}</span>
-                           </div>
-                       )}
+                       <OfflineStatus />
 
                        {isScrumMaster && currentStory && (
                            <div className="mt-4">
