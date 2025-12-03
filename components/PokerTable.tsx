@@ -213,8 +213,8 @@ const PokerTable: React.FC<PokerTableProps> = ({
           </div>
        </div>
 
-       {/* Main Table Area */}
-       <div className="flex-1 flex flex-col items-center justify-start pt-2 sm:pt-4 pb-24 sm:pb-20 px-2 sm:px-4 gap-4 sm:gap-6">
+       {/* Main Table Area - Increased Bottom Padding for Mobile Voting Controls */}
+       <div className="flex-1 flex flex-col items-center justify-start pt-2 sm:pt-4 pb-40 sm:pb-24 px-2 sm:px-4 gap-4 sm:gap-6">
            
            {/* Active Story Details (Integrated into flow) */}
            {currentStory && !isCoffeeTime && (

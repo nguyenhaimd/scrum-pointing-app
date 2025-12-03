@@ -105,7 +105,7 @@ const App: React.FC = () => {
           return;
       }
 
-      const prevMap = new Map(prev.map(u => [u.id, u]));
+      const prevMap = new Map<string, User>(prev.map(u => [u.id, u] as [string, User]));
 
       // 1. Detect New Joins & Reconnects
       curr.forEach(u => {

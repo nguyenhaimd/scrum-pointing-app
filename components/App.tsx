@@ -1,14 +1,14 @@
 
 import React, { useEffect, useState, useRef, useMemo } from 'react';
-import Login from './components/Login';
-import PokerTable from './components/PokerTable';
-import VotingControls from './components/VotingControls';
-import StoryPanel from './components/StoryPanel';
-import ChatPanel from './components/ChatPanel';
-import { useAppStore } from './services/store';
-import { User } from './types';
-import { USER_STORAGE_KEY, SOUND_PREF_KEY, STALE_USER_TIMEOUT, DISCONNECT_GRACE_PERIOD } from './constants';
-import { setMuted, playSound } from './services/soundService';
+import Login from './Login';
+import PokerTable from './PokerTable';
+import VotingControls from './VotingControls';
+import StoryPanel from './StoryPanel';
+import ChatPanel from './ChatPanel';
+import { useAppStore } from '../services/store';
+import { User } from '../types';
+import { USER_STORAGE_KEY, SOUND_PREF_KEY, STALE_USER_TIMEOUT, DISCONNECT_GRACE_PERIOD } from '../constants';
+import { setMuted, playSound } from '../services/soundService';
 
 type MobileView = 'stories' | 'table' | 'chat';
 
@@ -99,12 +99,13 @@ const App: React.FC = () => {
       const prev = prevVisibleUsersRef.current;
 
       // If this is the first time we see users (and we found some), just update ref and skip notifications
+      // This avoids spamming "Joined" for existing users when we first load the page
       if (prev.length === 0 && curr.length > 0) {
           prevVisibleUsersRef.current = curr;
           return;
       }
 
-      const prevMap = new Map(prev.map(u => [u.id, u]));
+      const prevMap = new Map<string, User>(prev.map(u => [u.id, u] as [string, User]));
 
       // 1. Detect New Joins & Reconnects
       curr.forEach(u => {
@@ -169,7 +170,7 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-slate-900 text-white overflow-hidden relative">
+    <div className="flex flex-col h-screen h-[100dvh] bg-slate-900 text-white overflow-hidden relative">
       
       {/* Toast Container */}
       <div className="fixed top-20 right-4 z-[80] flex flex-col gap-2 pointer-events-auto">
