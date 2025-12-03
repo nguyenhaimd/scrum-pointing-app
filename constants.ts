@@ -27,4 +27,5 @@ export const STORAGE_KEY = 'gemini-scrum-poker-state';
 export const USER_STORAGE_KEY = 'gemini-scrum-poker-user';
 export const SOUND_PREF_KEY = 'gemini-scrum-poker-muted';
 export const CHANNEL_NAME = 'gemini-scrum-poker-channel';
-export const STALE_USER_TIMEOUT = 10 * 60 * 1000; // 10 minutes
+export const STALE_USER_TIMEOUT = 10 * 60 * 1000; // 10 minutes (Database cleanup)
+export const DISCONNECT_GRACE_PERIOD = 60 * 1000; // 1 minute (Visual "offline" state before removal)

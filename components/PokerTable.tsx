@@ -48,8 +48,9 @@ const PokerTable: React.FC<PokerTableProps> = ({
   const [showArcade, setShowArcade] = useState(false);
   const prevRevealed = useRef(areVotesRevealed);
   
-  // Calculate counts for display
-  const developerCount = users.filter(u => u.role === UserRole.DEVELOPER).length;
+  // Calculate counts for display (Online users only for capacity)
+  const developerCount = users.filter(u => u.role === UserRole.DEVELOPER && u.isOnline).length;
+  // Votes count: we check all visible users, but usually offline ones don't vote (unless they voted then disconnected)
   const votesCastCount = currentStory?.votes 
       ? users.filter(u => u.role === UserRole.DEVELOPER && currentStory.votes[u.id] !== undefined).length 
       : 0;
@@ -350,9 +351,10 @@ const PokerTable: React.FC<PokerTableProps> = ({
                    // Others just show their presence unless they explicitly voted.
                    const isVoter = user.role === UserRole.DEVELOPER;
                    const showCardSlot = isVoter || hasVoted;
+                   const isOffline = !user.isOnline;
 
                    return (
-                       <div key={user.id} className="relative group flex flex-col items-center w-full sm:w-auto">
+                       <div key={user.id} className={`relative group flex flex-col items-center w-full sm:w-auto ${isOffline ? 'opacity-50 grayscale transition-all duration-1000' : ''}`}>
                            
                            {/* The Card / Placeholder */}
                            <div className={`
@@ -369,7 +371,7 @@ const PokerTable: React.FC<PokerTableProps> = ({
                                                 size="md"
                                             />
                                             {/* VOTED CHECKMARK BADGE */}
-                                            {!areVotesRevealed && (
+                                            {!areVotesRevealed && !isOffline && (
                                                 <div className="absolute -top-2 -right-2 bg-emerald-500 text-slate-900 rounded-full p-0.5 border-2 border-slate-900 shadow-lg animate-bounce z-10">
                                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
                                                 </div>
@@ -378,7 +380,11 @@ const PokerTable: React.FC<PokerTableProps> = ({
                                     ) : (
                                         // Empty Slot for Developers
                                         <div className="w-14 h-20 md:w-16 md:h-24 rounded-xl border-2 border-dashed border-slate-700 bg-slate-800/30 flex items-center justify-center">
-                                            <span className="text-xs text-slate-500 animate-pulse">Thinking</span>
+                                            {isOffline ? (
+                                                <span className="text-2xl opacity-50">💤</span>
+                                            ) : (
+                                                <span className="text-xs text-slate-500 animate-pulse">Thinking</span>
+                                            )}
                                         </div>
                                     )
                                ) : (
@@ -393,16 +399,24 @@ const PokerTable: React.FC<PokerTableProps> = ({
                            {/* User Info */}
                            <div className="mt-2 sm:mt-3 flex flex-col items-center max-w-full w-full px-1">
                                <div className={`
-                                   flex items-center justify-center gap-1.5 bg-slate-800/80 backdrop-blur px-2 py-1 rounded-full border shadow-sm w-full transition-colors duration-300
-                                   ${hasVoted ? 'border-emerald-500/50 bg-emerald-900/20' : 'border-slate-700'}
+                                   flex items-center justify-center gap-1.5 bg-slate-800/80 backdrop-blur px-2 py-1 rounded-full border shadow-sm w-full transition-colors duration-300 relative
+                                   ${isOffline ? 'border-red-900/30 bg-red-900/10' : hasVoted ? 'border-emerald-500/50 bg-emerald-900/20' : 'border-slate-700'}
                                `}>
+                                   {/* Disconnected Overlay Icon */}
+                                   {isOffline && (
+                                       <div className="absolute inset-0 flex items-center justify-center bg-slate-900/50 rounded-full z-10" title="Disconnected">
+                                            <svg className="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path></svg>
+                                       </div>
+                                   )}
                                    <span className="text-xs sm:text-sm shrink-0">{user.avatar}</span>
                                    <span className={`text-[10px] sm:text-xs font-medium truncate ${hasVoted ? 'text-emerald-300' : 'text-slate-400'}`}>
                                        {user.name}
                                    </span>
                                </div>
                                {/* Role Badge */}
-                               <span className="text-[9px] sm:text-[10px] text-slate-500 mt-0.5 truncate max-w-full px-1">{user.role}</span>
+                               <span className={`text-[9px] sm:text-[10px] mt-0.5 truncate max-w-full px-1 ${isOffline ? 'text-red-400 font-bold' : 'text-slate-500'}`}>
+                                   {isOffline ? 'Disconnected' : user.role}
+                               </span>
                            </div>
                        </div>
                    );

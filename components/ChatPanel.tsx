@@ -100,6 +100,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   });
 
   const isScrumMaster = currentUser.role === UserRole.SCRUM_MASTER;
+  const onlineCount = users.filter(u => u.isOnline).length;
 
   return (
     <div className="flex flex-col h-[40vh] md:h-full bg-slate-800 border-t border-slate-700 md:border-t-0 md:border-l md:w-80">
@@ -123,7 +124,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
               : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'
           }`}
         >
-          People ({users.filter(u => u.isOnline).length})
+          People ({onlineCount})
         </button>
       </div>
 
@@ -191,27 +192,27 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
         <div className="flex-1 overflow-y-auto p-2 scrollbar-hide">
           <div className="space-y-1">
             {sortedUsers.map(user => (
-              <div key={user.id} className="flex items-center gap-3 p-2 rounded hover:bg-slate-700/50 transition-colors group">
+              <div key={user.id} className={`flex items-center gap-3 p-2 rounded transition-colors group ${user.isOnline ? 'hover:bg-slate-700/50' : 'opacity-60 bg-slate-800/30'}`}>
                 <div className="relative">
                   <div className={`
                     w-8 h-8 rounded-full flex items-center justify-center text-lg border
-                    ${user.isOnline ? 'bg-slate-700 border-indigo-400' : 'bg-slate-700 border-slate-500 grayscale opacity-50'}
+                    ${user.isOnline ? 'bg-slate-700 border-indigo-400' : 'bg-slate-800 border-slate-600 grayscale'}
                   `}>
                     {user.avatar || '👤'}
                   </div>
                   <div className={`
                     absolute -bottom-0.5 -right-0.5 w-3 h-3 border-2 border-slate-800 rounded-full
-                    ${user.isOnline ? 'bg-emerald-500' : 'bg-slate-500'}
+                    ${user.isOnline ? 'bg-emerald-500' : 'bg-red-500 border-slate-900'}
                   `}></div>
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-baseline">
-                    <p className={`text-sm font-medium truncate ${user.isOnline ? 'text-slate-200' : 'text-slate-500'}`}>
+                    <p className={`text-sm font-medium truncate ${user.isOnline ? 'text-slate-200' : 'text-slate-500 italic'}`}>
                       {user.name || 'Unknown User'} {user.id === currentUser.id && '(You)'}
                     </p>
                     <DeviceIcon type={user.deviceType || 'desktop'} />
                   </div>
-                  <p className="text-xs text-slate-500">{user.role}</p>
+                  <p className={`text-xs ${user.isOnline ? 'text-slate-500' : 'text-red-400'}`}>{user.isOnline ? user.role : 'Disconnected'}</p>
                 </div>
 
                 {/* Scrum Master Remove Button */}

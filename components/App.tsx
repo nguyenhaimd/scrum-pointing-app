@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useRef, useMemo } from 'react';
 import Login from './components/Login';
 import PokerTable from './components/PokerTable';
@@ -6,7 +7,7 @@ import StoryPanel from './components/StoryPanel';
 import ChatPanel from './components/ChatPanel';
 import { useAppStore } from './services/store';
 import { User } from './types';
-import { USER_STORAGE_KEY, SOUND_PREF_KEY, STALE_USER_TIMEOUT } from './constants';
+import { USER_STORAGE_KEY, SOUND_PREF_KEY, STALE_USER_TIMEOUT, DISCONNECT_GRACE_PERIOD } from './constants';
 import { setMuted, playSound } from './services/soundService';
 
 type MobileView = 'stories' | 'table' | 'chat';
@@ -45,8 +46,8 @@ const App: React.FC = () => {
         setMuted(muted);
     }
 
-    // Update 'now' every minute to check for stale users
-    const interval = setInterval(() => setNow(Date.now()), 60000);
+    // Update 'now' every 5 seconds to update disconnected states more frequently
+    const interval = setInterval(() => setNow(Date.now()), 5000);
     return () => clearInterval(interval);
   }, []);
 
@@ -63,12 +64,29 @@ const App: React.FC = () => {
   // Derived State
   const currentStory = state.stories.find(s => s.id === state.currentStoryId) || null;
   
-  // Filter only online and non-stale users for display
+  // Filter users: 
+  // 1. Must not be stale (older than STALE_USER_TIMEOUT)
+  // 2. Either IS online OR (IS offline BUT within DISCONNECT_GRACE_PERIOD)
   const visibleUsers = useMemo(() => {
     return (Object.values(state.users) as User[])
-      .filter(u => u.isOnline && (now - u.lastHeartbeat < STALE_USER_TIMEOUT))
-      .sort((a, b) => a.name.localeCompare(b.name));
+      .filter(u => {
+          const isStale = (now - u.lastHeartbeat) > STALE_USER_TIMEOUT;
+          if (isStale) return false;
+
+          if (u.isOnline) return true;
+          
+          // If offline, check if they are within the grace period
+          return (now - u.lastHeartbeat) < DISCONNECT_GRACE_PERIOD;
+      })
+      .sort((a, b) => {
+          // Sort online users first, then offline users, then by name
+          if (a.isOnline !== b.isOnline) return a.isOnline ? -1 : 1;
+          return a.name.localeCompare(b.name);
+      });
   }, [state.users, now]);
+
+  // Actual online count for header
+  const onlineCount = visibleUsers.filter(u => u.isOnline).length;
 
   const prevVisibleUsersRef = useRef<User[]>([]);
 
@@ -78,46 +96,55 @@ const App: React.FC = () => {
       const prev = prevVisibleUsersRef.current;
 
       // If this is the first time we see users (and we found some), just update ref and skip notifications
-      // This avoids spamming "Joined" for existing users when we first load the page
       if (prev.length === 0 && curr.length > 0) {
           prevVisibleUsersRef.current = curr;
           return;
       }
 
-      // Check for left users
-      prev.forEach(u => {
-          if (!curr.find(c => c.id === u.id)) {
-              if (u.id !== currentUser?.id) { // Don't notify self
-                  // Disconnect toast: persistent (closable) but auto-dismisses after 1 minute (60000ms)
-                  addToast(`${u.name} disconnected`, 'error', true, 60000);
-                  playSound.leave();
+      // Check for left users (Active -> Offline)
+      // Note: We only notify if they completely disappear OR if they go offline. 
+      // But since we keep them in the list now, we detect the state change.
+      
+      const prevMap = new Map(prev.map(u => [u.id, u]));
+      const currMap = new Map(curr.map(u => [u.id, u]));
+
+      // 1. Detect Status Change: Online -> Offline
+      curr.forEach(u => {
+          const oldU = prevMap.get(u.id);
+          if (oldU && oldU.isOnline && !u.isOnline) {
+              if (u.id !== currentUser?.id) {
+                  addToast(`${u.name} disconnected`, 'info', false);
               }
           }
       });
-      
-      // Check for joined users (Optional but good UX)
+
+      // 2. Detect New Joins
       curr.forEach(u => {
-           if (!prev.find(p => p.id === u.id)) {
+           if (!prevMap.has(u.id)) {
               if (u.id !== currentUser?.id) {
                  addToast(`${u.name} joined`, 'info');
                  playSound.join();
               }
+           } else {
+               // Reconnected?
+               const oldU = prevMap.get(u.id);
+               if (oldU && !oldU.isOnline && u.isOnline) {
+                   addToast(`${u.name} reconnected`, 'info');
+               }
            }
       });
 
       prevVisibleUsersRef.current = curr;
-  }, [visibleUsers, currentUser]); // Re-run whenever the visible list changes
+  }, [visibleUsers, currentUser]);
 
-  const addToast = (message: string, type: Toast['type'] = 'info', persistent = false, duration?: number) => {
+  const addToast = (message: string, type: Toast['type'] = 'info', persistent = false) => {
       const id = crypto.randomUUID();
       setToasts(prev => [...prev, { id, message, type, persistent }]);
       
-      const time = duration ?? (persistent ? 0 : 4000);
-      
-      if (time > 0) {
+      if (!persistent) {
           setTimeout(() => {
               removeToast(id);
-          }, time);
+          }, 4000);
       }
   };
 
@@ -201,7 +228,14 @@ const App: React.FC = () => {
             </div>
             <div className="hidden sm:block">
                 <h1 className="font-bold text-lg leading-none">HighWind's Scrum Poker</h1>
-                <p className="text-xs text-slate-400">Room: {currentUser.room}</p>
+                <div className="flex items-center gap-2 text-xs text-slate-400 mt-1">
+                   <span>Room: {currentUser.room}</span>
+                   <span className="text-slate-600">•</span>
+                   <span className="flex items-center gap-1.5 text-emerald-400 font-medium bg-emerald-900/20 px-1.5 py-0.5 rounded-full">
+                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                       {onlineCount} Online
+                   </span>
+                </div>
             </div>
         </div>
         
@@ -239,28 +273,6 @@ const App: React.FC = () => {
             </div>
         </div>
       </header>
-
-      {/* Mobile Tabs Navigation */}
-      <div className="md:hidden flex border-b border-slate-700 bg-slate-800 shrink-0 text-sm font-medium">
-          <button 
-            onClick={() => setMobileView('stories')}
-            className={`flex-1 py-3 text-center border-b-2 ${mobileView === 'stories' ? 'border-indigo-500 text-indigo-400 bg-slate-700/30' : 'border-transparent text-slate-400'}`}
-          >
-            Stories
-          </button>
-          <button 
-            onClick={() => setMobileView('table')}
-            className={`flex-1 py-3 text-center border-b-2 ${mobileView === 'table' ? 'border-indigo-500 text-indigo-400 bg-slate-700/30' : 'border-transparent text-slate-400'}`}
-          >
-            Table
-          </button>
-          <button 
-            onClick={() => setMobileView('chat')}
-            className={`flex-1 py-3 text-center border-b-2 ${mobileView === 'chat' ? 'border-indigo-500 text-indigo-400 bg-slate-700/30' : 'border-transparent text-slate-400'}`}
-          >
-            Chat
-          </button>
-      </div>
 
       {/* Main Content Grid */}
       <div className="flex-1 flex overflow-hidden relative">
@@ -349,6 +361,34 @@ const App: React.FC = () => {
         </div>
 
       </div>
+
+      {/* Mobile Bottom Navigation */}
+      <div className="md:hidden bg-slate-800 border-t border-slate-700 flex justify-around items-center shrink-0 z-50">
+          <button 
+            onClick={() => setMobileView('stories')}
+            className={`flex flex-col items-center justify-center w-full py-2 pb-safe transition-colors active:bg-slate-700/50 ${mobileView === 'stories' ? 'text-indigo-400' : 'text-slate-500 hover:text-slate-300'}`}
+          >
+            <svg className="w-6 h-6 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+            <span className="text-[10px] font-bold tracking-wide">Stories</span>
+          </button>
+          
+          <button 
+            onClick={() => setMobileView('table')}
+            className={`flex flex-col items-center justify-center w-full py-2 pb-safe transition-colors active:bg-slate-700/50 ${mobileView === 'table' ? 'text-indigo-400' : 'text-slate-500 hover:text-slate-300'}`}
+          >
+            <svg className="w-6 h-6 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+            <span className="text-[10px] font-bold tracking-wide">Table</span>
+          </button>
+          
+          <button 
+            onClick={() => setMobileView('chat')}
+            className={`flex flex-col items-center justify-center w-full py-2 pb-safe transition-colors active:bg-slate-700/50 ${mobileView === 'chat' ? 'text-indigo-400' : 'text-slate-500 hover:text-slate-300'}`}
+          >
+            <svg className="w-6 h-6 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
+            <span className="text-[10px] font-bold tracking-wide">Chat</span>
+          </button>
+      </div>
+
     </div>
   );
 };
