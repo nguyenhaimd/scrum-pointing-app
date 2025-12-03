@@ -52,6 +52,7 @@ const PokerTable: React.FC<PokerTableProps> = ({
   // We include ALL visible developers (even disconnected ones) in the capacity
   // because we are waiting for them (grace period) or they may have already voted.
   const developerCount = users.filter(u => u.role === UserRole.DEVELOPER).length;
+  const offlineDevelopers = users.filter(u => u.role === UserRole.DEVELOPER && !u.isOnline);
   
   // Votes count: check all visible users
   const votesCastCount = currentStory?.votes 
@@ -333,6 +334,15 @@ const PokerTable: React.FC<PokerTableProps> = ({
                                <span className="text-white font-medium">{votesCastCount}</span> / <span className="text-white font-medium">{developerCount}</span> votes cast
                            </p>
                        )}
+                       
+                       {/* Offline Developer Warning */}
+                       {offlineDevelopers.length > 0 && currentStory && (
+                           <div className="mt-3 bg-amber-500/10 border border-amber-500/50 rounded-lg p-2 text-xs text-amber-200 flex items-center justify-center gap-2 max-w-sm mx-auto animate-pulse">
+                                <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                                <span className="truncate">Waiting for connection: {offlineDevelopers.map(u => u.name).join(', ')}</span>
+                           </div>
+                       )}
+
                        {isScrumMaster && currentStory && (
                            <div className="mt-4">
                                <Button onClick={onReveal} disabled={!currentStory.votes || Object.keys(currentStory.votes).length === 0}>

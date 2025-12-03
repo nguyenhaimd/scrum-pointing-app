@@ -73,7 +73,7 @@ const App: React.FC = () => {
 
   const prevVisibleUsersRef = useRef<User[]>([]);
 
-  // Notification logic for joins/leaves
+  // Notification logic for joins only (leaves are silent/visual only)
   useEffect(() => {
       const curr = visibleUsers;
       const prev = prevVisibleUsersRef.current;
@@ -85,16 +85,6 @@ const App: React.FC = () => {
           return;
       }
 
-      // Check for left users
-      prev.forEach(u => {
-          if (!curr.find(c => c.id === u.id)) {
-              if (u.id !== currentUser?.id) { // Don't notify self
-                  addToast(`${u.name} disconnected`, 'error', true);
-                  playSound.leave();
-              }
-          }
-      });
-      
       // Check for joined users (Optional but good UX)
       curr.forEach(u => {
            if (!prev.find(p => p.id === u.id)) {
