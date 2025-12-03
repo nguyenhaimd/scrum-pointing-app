@@ -48,9 +48,12 @@ const PokerTable: React.FC<PokerTableProps> = ({
   const [showArcade, setShowArcade] = useState(false);
   const prevRevealed = useRef(areVotesRevealed);
   
-  // Calculate counts for display (Online users only for capacity)
-  const developerCount = users.filter(u => u.role === UserRole.DEVELOPER && u.isOnline).length;
-  // Votes count: we check all visible users, but usually offline ones don't vote (unless they voted then disconnected)
+  // Calculate counts for display
+  // We include ALL visible developers (even disconnected ones) in the capacity
+  // because we are waiting for them (grace period) or they may have already voted.
+  const developerCount = users.filter(u => u.role === UserRole.DEVELOPER).length;
+  
+  // Votes count: check all visible users
   const votesCastCount = currentStory?.votes 
       ? users.filter(u => u.role === UserRole.DEVELOPER && currentStory.votes[u.id] !== undefined).length 
       : 0;

@@ -64,9 +64,9 @@ const App: React.FC = () => {
   // Derived State
   const currentStory = state.stories.find(s => s.id === state.currentStoryId) || null;
   
-  // Filter users: 
-  // 1. Must not be stale (older than STALE_USER_TIMEOUT)
-  // 2. Either IS online OR (IS offline BUT within DISCONNECT_GRACE_PERIOD)
+  // Filter logic:
+  // 1. Filter out stale users (older than STALE_USER_TIMEOUT)
+  // 2. KEEP disconnected users if they are within the DISCONNECT_GRACE_PERIOD
   const visibleUsers = useMemo(() => {
     return (Object.values(state.users) as User[])
       .filter(u => {
@@ -76,7 +76,7 @@ const App: React.FC = () => {
           // Always show online users
           if (u.isOnline) return true;
           
-          // Show disconnected users if they are within the grace period
+          // Show disconnected users if they are within the grace period (so we can see they dropped)
           return (now - u.lastHeartbeat) < DISCONNECT_GRACE_PERIOD;
       })
       .sort((a, b) => {
@@ -93,7 +93,7 @@ const App: React.FC = () => {
 
   const prevVisibleUsersRef = useRef<User[]>([]);
 
-  // Notification logic for joins/leaves
+  // Notification logic for joins only (leaves are silent/visual only)
   useEffect(() => {
       const curr = visibleUsers;
       const prev = prevVisibleUsersRef.current;
@@ -117,13 +117,14 @@ const App: React.FC = () => {
                // Reconnected?
                const oldU = prevMap.get(u.id);
                if (oldU && !oldU.isOnline && u.isOnline) {
-                   addToast(`${u.name} reconnected`, 'info');
+                   // Optional: subtle toast for reconnect
+                   // addToast(`${u.name} reconnected`, 'info'); 
                }
            }
       });
       
-      // 2. Detect Leaves - REMOVED annoying toast and sound as requested.
-      // The visual state in the PokerTable (greyed out) and the Header (Team Health) is enough.
+      // 2. Detect Leaves - Notification REMOVED.
+      // We rely on the visual state in the PokerTable (greyed out) and the Header (Team Health).
 
       prevVisibleUsersRef.current = curr;
   }, [visibleUsers, currentUser]);
@@ -331,7 +332,7 @@ const App: React.FC = () => {
                 }}
             />
 
-            {/* Voting Hand (Disabled if story is completed) will this work ?*/}
+            {/* Voting Hand (Disabled if story is completed) */}
             {currentStory?.status !== 'completed' && (
                 <VotingControls 
                     currentStory={currentStory}
