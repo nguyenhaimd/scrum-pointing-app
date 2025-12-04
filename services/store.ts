@@ -143,6 +143,7 @@ export const useAppStore = (currentUser: User | null) => {
 
     connectedRef.on('value', handleConnected);
 
+    // Increase heartbeat frequency to 15s (from 60s) to allow more accurate disconnect timers
     const interval = setInterval(() => {
         if (!db) return;
         const now = Date.now();
@@ -161,7 +162,7 @@ export const useAppStore = (currentUser: User | null) => {
                 }
             });
         }
-    }, 60000);
+    }, 15000);
 
     return () => {
         connectedRef.off('value', handleConnected);
