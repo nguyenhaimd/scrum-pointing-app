@@ -62,6 +62,13 @@ const App: React.FC = () => {
   // Sync with Simulated Backend
   const { state, dispatch, isConnected } = useAppStore(currentUser);
   
+  // Create refs for stable access inside intervals without triggering re-renders
+  const dispatchRef = useRef(dispatch);
+  const sessionStatusRef = useRef(state.sessionStatus);
+
+  useEffect(() => { dispatchRef.current = dispatch; }, [dispatch]);
+  useEffect(() => { sessionStatusRef.current = state.sessionStatus; }, [state.sessionStatus]);
+  
   // Derived State
   const currentStory = state.stories.find(s => s.id === state.currentStoryId) || null;
   
@@ -133,41 +140,55 @@ const App: React.FC = () => {
 
   // Chuck Norris Bot (Scrum Master Only)
   useEffect(() => {
+    // Only run for Scrum Master
     if (!currentUser || currentUser.role !== UserRole.SCRUM_MASTER) return;
 
-    let timerId: NodeJS.Timeout;
+    let timeoutId: NodeJS.Timeout;
+    let mounted = true;
 
-    const queueNextJoke = () => {
-        // Random interval between 3 and 8 minutes
-        const minDelay = 3 * 60 * 1000;
-        const maxDelay = 8 * 60 * 1000;
-        const delay = Math.floor(Math.random() * (maxDelay - minDelay + 1)) + minDelay;
+    const runBotCycle = async (delay: number) => {
+        timeoutId = setTimeout(async () => {
+            if (!mounted) return;
 
-        timerId = setTimeout(async () => {
-            // Only send if session is active (not ended)
-            if (state.sessionStatus === 'active') {
-                const joke = await getChuckNorrisJoke();
-                const botMsg: ChatMessage = {
-                    id: crypto.randomUUID(),
-                    userId: 'chuck-norris-bot',
-                    userName: 'Chuck Norris Fact 🤠',
-                    text: joke,
-                    timestamp: Date.now(),
-                    isAi: true,
-                    isSystem: false
-                };
-                dispatch({ type: 'SEND_MESSAGE', payload: botMsg });
+            // Only send if session is active
+            if (sessionStatusRef.current === 'active') {
+                try {
+                    const joke = await getChuckNorrisJoke();
+                    if (mounted) {
+                         const botMsg: ChatMessage = {
+                            id: crypto.randomUUID(),
+                            userId: 'chuck-norris-bot',
+                            userName: 'Chuck Norris Fact 🤠',
+                            text: joke,
+                            timestamp: Date.now(),
+                            isAi: true,
+                            isSystem: false
+                        };
+                        dispatchRef.current({ type: 'SEND_MESSAGE', payload: botMsg });
+                    }
+                } catch (err) {
+                    console.error("Chuck bot failed", err);
+                }
             }
-            // Re-queue
-            queueNextJoke();
+
+            // Schedule next run (between 2 and 5 minutes)
+            const minMins = 2;
+            const maxMins = 5;
+            const nextDelay = (Math.floor(Math.random() * (maxMins - minMins + 1)) + minMins) * 60 * 1000;
+            
+            if (mounted) runBotCycle(nextDelay);
+
         }, delay);
     };
 
-    // Start the loop
-    queueNextJoke();
+    // Start with a short delay (15s) so the user sees it works immediately
+    runBotCycle(15000);
 
-    return () => clearTimeout(timerId);
-  }, [currentUser, state.sessionStatus, dispatch]);
+    return () => {
+        mounted = false;
+        clearTimeout(timeoutId);
+    };
+  }, [currentUser?.role]); // Only re-run if role changes, NOT on every state update
 
   const addToast = (message: string, type: Toast['type'] = 'info', persistent = false) => {
       const id = crypto.randomUUID();
