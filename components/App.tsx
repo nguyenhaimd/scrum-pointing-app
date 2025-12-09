@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useRef, useMemo } from 'react';
 import Login from './Login';
 import PokerTable from './PokerTable';
@@ -28,9 +29,9 @@ const App: React.FC = () => {
   const [isSoundMuted, setIsSoundMuted] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [now, setNow] = useState(Date.now());
+  const [isChuckLoading, setIsChuckLoading] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
-  const [isChuckLoading, setIsChuckLoading] = useState(false);
 
   // Try to restore session on mount from localStorage (persists across close/reopen)
   useEffect(() => {
@@ -56,18 +57,7 @@ const App: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // Check for first-time onboarding
-  useEffect(() => {
-      if (currentUser) {
-          const hasSeenOnboarding = localStorage.getItem('scrum-poker-onboarding-v1');
-          if (!hasSeenOnboarding) {
-              setShowOnboarding(true);
-          }
-      }
-  }, [currentUser]);
-
   const handleDismissOnboarding = () => {
-      localStorage.setItem('scrum-poker-onboarding-v1', 'true');
       setShowOnboarding(false);
   };
 
