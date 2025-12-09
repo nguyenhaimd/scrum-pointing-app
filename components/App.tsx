@@ -6,9 +6,10 @@ import VotingControls from './VotingControls';
 import StoryPanel from './StoryPanel';
 import ChatPanel from './ChatPanel';
 import { useAppStore } from '../services/store';
-import { User } from '../types';
+import { User, UserRole, ChatMessage } from '../types';
 import { USER_STORAGE_KEY, SOUND_PREF_KEY, STALE_USER_TIMEOUT, DISCONNECT_GRACE_PERIOD } from '../constants';
 import { setMuted, playSound } from '../services/soundService';
+import { getChuckNorrisJoke } from '../services/geminiService';
 
 type MobileView = 'stories' | 'table' | 'chat';
 
@@ -129,6 +130,44 @@ const App: React.FC = () => {
 
       prevVisibleUsersRef.current = curr;
   }, [visibleUsers, currentUser]);
+
+  // Chuck Norris Bot (Scrum Master Only)
+  useEffect(() => {
+    if (!currentUser || currentUser.role !== UserRole.SCRUM_MASTER) return;
+
+    let timerId: NodeJS.Timeout;
+
+    const queueNextJoke = () => {
+        // Random interval between 3 and 8 minutes
+        const minDelay = 3 * 60 * 1000;
+        const maxDelay = 8 * 60 * 1000;
+        const delay = Math.floor(Math.random() * (maxDelay - minDelay + 1)) + minDelay;
+
+        timerId = setTimeout(async () => {
+            // Only send if session is active (not ended)
+            if (state.sessionStatus === 'active') {
+                const joke = await getChuckNorrisJoke();
+                const botMsg: ChatMessage = {
+                    id: crypto.randomUUID(),
+                    userId: 'chuck-norris-bot',
+                    userName: 'Chuck Norris Fact 🤠',
+                    text: joke,
+                    timestamp: Date.now(),
+                    isAi: true,
+                    isSystem: false
+                };
+                dispatch({ type: 'SEND_MESSAGE', payload: botMsg });
+            }
+            // Re-queue
+            queueNextJoke();
+        }, delay);
+    };
+
+    // Start the loop
+    queueNextJoke();
+
+    return () => clearTimeout(timerId);
+  }, [currentUser, state.sessionStatus, dispatch]);
 
   const addToast = (message: string, type: Toast['type'] = 'info', persistent = false) => {
       const id = crypto.randomUUID();
