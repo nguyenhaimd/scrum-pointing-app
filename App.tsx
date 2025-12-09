@@ -208,13 +208,7 @@ const App: React.FC = () => {
 
   // View
   if (!currentUser) {
-    return (
-        <Login 
-            onJoin={handleJoin} 
-            onShowOnboarding={() => setShowOnboarding(true)}
-            onShowAbout={() => setShowAbout(true)}
-        />
-    );
+    return <Login onJoin={handleJoin} />;
   }
 
   return (
