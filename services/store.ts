@@ -21,8 +21,7 @@ const initialState: AppState = {
     accumulated: 0
   },
   lastReaction: null,
-  sessionStatus: 'active',
-  chuckBotEnabled: true
+  sessionStatus: 'active'
 };
 
 export const useAppStore = (currentUser: User | null) => {
@@ -100,8 +99,7 @@ export const useAppStore = (currentUser: User | null) => {
           chatMessages: chatArray as any[],
           timer: timerData,
           lastReaction: newLastReaction !== null && newLastReaction.id !== prev.lastReaction?.id ? newLastReaction : prev.lastReaction,
-          sessionStatus: data.sessionStatus || 'active',
-          chuckBotEnabled: data.chuckBotEnabled !== undefined ? data.chuckBotEnabled : true
+          sessionStatus: data.sessionStatus || 'active'
         }));
       } else {
         setState(initialState);
@@ -307,12 +305,6 @@ export const useAppStore = (currentUser: User | null) => {
               timestamp: Date.now()
           };
           await rRef.set(reaction);
-          break;
-      
-      case 'TOGGLE_CHUCK_BOT':
-          await db.ref(`${rootPath}`).update({
-              chuckBotEnabled: !state.chuckBotEnabled
-          });
           break;
 
       case 'JOIN_SESSION':

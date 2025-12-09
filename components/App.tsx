@@ -27,6 +27,7 @@ const App: React.FC = () => {
   const [isSoundMuted, setIsSoundMuted] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [now, setNow] = useState(Date.now());
+  const [isChuckLoading, setIsChuckLoading] = useState(false);
 
   // Try to restore session on mount from localStorage (persists across close/reopen)
   useEffect(() => {
@@ -61,13 +62,6 @@ const App: React.FC = () => {
 
   // Sync with Simulated Backend
   const { state, dispatch, isConnected } = useAppStore(currentUser);
-  
-  // Create refs for stable access inside intervals without triggering re-renders
-  const dispatchRef = useRef(dispatch);
-  const sessionStatusRef = useRef(state.sessionStatus);
-
-  useEffect(() => { dispatchRef.current = dispatch; }, [dispatch]);
-  useEffect(() => { sessionStatusRef.current = state.sessionStatus; }, [state.sessionStatus]);
   
   // Derived State
   const currentStory = state.stories.find(s => s.id === state.currentStoryId) || null;
@@ -138,61 +132,6 @@ const App: React.FC = () => {
       prevVisibleUsersRef.current = curr;
   }, [visibleUsers, currentUser]);
 
-  // Chuck Norris Bot (Scrum Master Only)
-  useEffect(() => {
-    // Only run for Scrum Master
-    if (!currentUser || currentUser.role !== UserRole.SCRUM_MASTER) return;
-
-    // Check if enabled in state
-    if (!state.chuckBotEnabled) return;
-
-    let timeoutId: NodeJS.Timeout;
-    let mounted = true;
-
-    const runBotCycle = async (delay: number) => {
-        timeoutId = setTimeout(async () => {
-            if (!mounted) return;
-
-            // Only send if session is active
-            if (sessionStatusRef.current === 'active') {
-                try {
-                    const joke = await getChuckNorrisJoke();
-                    if (mounted && joke) {
-                         const botMsg: ChatMessage = {
-                            id: crypto.randomUUID(),
-                            userId: 'chuck-norris-bot',
-                            userName: 'Chuck Norris Fact 🤠',
-                            text: joke,
-                            timestamp: Date.now(),
-                            isAi: true,
-                            isSystem: false
-                        };
-                        dispatchRef.current({ type: 'SEND_MESSAGE', payload: botMsg });
-                    }
-                } catch (err) {
-                    console.error("Chuck bot failed", err);
-                }
-            }
-
-            // Schedule next run (between 2 and 5 minutes)
-            const minMins = 2;
-            const maxMins = 5;
-            const nextDelay = (Math.floor(Math.random() * (maxMins - minMins + 1)) + minMins) * 60 * 1000;
-            
-            if (mounted) runBotCycle(nextDelay);
-
-        }, delay);
-    };
-
-    // Start with a short delay (30s) so the user sees it works reasonably soon
-    runBotCycle(30000);
-
-    return () => {
-        mounted = false;
-        clearTimeout(timeoutId);
-    };
-  }, [currentUser?.role, state.chuckBotEnabled]); // Re-run when toggle changes
-
   const addToast = (message: string, type: Toast['type'] = 'info', persistent = false) => {
       const id = crypto.randomUUID();
       setToasts(prev => [...prev, { id, message, type, persistent }]);
@@ -218,6 +157,31 @@ const App: React.FC = () => {
       localStorage.removeItem(USER_STORAGE_KEY);
       setCurrentUser(null);
       window.location.reload();
+  };
+
+  const handleGetChuckJoke = async () => {
+    if (isChuckLoading) return;
+    setIsChuckLoading(true);
+    try {
+        const joke = await getChuckNorrisJoke();
+        if (joke) {
+            const botMsg: ChatMessage = {
+                id: crypto.randomUUID(),
+                userId: 'chuck-norris-bot',
+                userName: 'Chuck Norris Bot 🤠',
+                text: joke,
+                timestamp: Date.now(),
+                isAi: true,
+                isSystem: false
+            };
+            dispatch({ type: 'SEND_MESSAGE', payload: botMsg });
+        }
+    } catch (e) {
+        console.error(e);
+        addToast("Failed to summon Chuck", 'error');
+    } finally {
+        setIsChuckLoading(false);
+    }
   };
   
   // Force logout if session ends
@@ -442,8 +406,8 @@ const App: React.FC = () => {
                 currentStory={currentStory}
                 onSendMessage={(msg) => dispatch({ type: 'SEND_MESSAGE', payload: msg })}
                 onRemoveUser={(userId) => dispatch({ type: 'REMOVE_USER', payload: userId })}
-                chuckBotEnabled={state.chuckBotEnabled}
-                onToggleChuckBot={() => dispatch({ type: 'TOGGLE_CHUCK_BOT' })}
+                onGetChuckJoke={handleGetChuckJoke}
+                isChuckLoading={isChuckLoading}
             />
         </div>
 

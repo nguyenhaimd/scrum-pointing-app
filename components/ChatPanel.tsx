@@ -1,8 +1,8 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 // @ts-ignore
 import confetti from 'canvas-confetti';
 import { ChatMessage, User, Story, UserRole } from '../types';
-import { getChuckNorrisJoke } from '../services/geminiService';
 
 interface ChatPanelProps {
   messages: ChatMessage[];
@@ -11,8 +11,8 @@ interface ChatPanelProps {
   currentStory: Story | null;
   onSendMessage: (msg: ChatMessage) => void;
   onRemoveUser?: (userId: string) => void;
-  chuckBotEnabled: boolean;
-  onToggleChuckBot: () => void;
+  onGetChuckJoke: () => void;
+  isChuckLoading: boolean;
 }
 
 const DeviceIcon: React.FC<{ type: 'mobile' | 'tablet' | 'desktop' }> = ({ type }) => {
@@ -47,12 +47,11 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   currentStory,
   onSendMessage,
   onRemoveUser,
-  chuckBotEnabled,
-  onToggleChuckBot
+  onGetChuckJoke,
+  isChuckLoading
 }) => {
   const [activeTab, setActiveTab] = useState<'chat' | 'people'>('chat');
   const [input, setInput] = useState('');
-  const [isGettingJoke, setIsGettingJoke] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -95,28 +94,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       }
   };
   
-  const handleManualChuck = async () => {
-      if (isGettingJoke) return;
-      setIsGettingJoke(true);
-      try {
-          const joke = await getChuckNorrisJoke();
-          const botMsg: ChatMessage = {
-              id: crypto.randomUUID(),
-              userId: 'chuck-norris-bot',
-              userName: 'Chuck Norris Fact 🤠',
-              text: joke,
-              timestamp: Date.now(),
-              isAi: true,
-              isSystem: false
-          };
-          onSendMessage(botMsg);
-      } catch (e) {
-          console.error(e);
-      } finally {
-          setIsGettingJoke(false);
-      }
-  };
-
   // Sort users: Online first, then by name.
   const sortedUsers = [...users].sort((a, b) => {
     const nameA = String(a.name || 'Unknown');
@@ -153,16 +130,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
         >
           People ({onlineCount})
         </button>
-        {isScrumMaster && (
-             <button 
-                onClick={onToggleChuckBot}
-                className={`px-3 py-1 flex items-center justify-center border-l border-slate-700 ${chuckBotEnabled ? 'text-amber-400 bg-amber-900/10' : 'text-slate-600'}`}
-                title={chuckBotEnabled ? "Disable Chuck Bot" : "Enable Chuck Bot"}
-             >
-                 <span className="text-lg">🤠</span>
-                 <span className={`ml-1 w-2 h-2 rounded-full ${chuckBotEnabled ? 'bg-amber-400 animate-pulse' : 'bg-slate-600'}`}></span>
-             </button>
-        )}
       </div>
 
       {/* Chat Tab Content */}
@@ -184,12 +151,11 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
               }
 
               const isMe = msg.userId === currentUser.id;
-              const isChuckBot = msg.userId === 'chuck-norris-bot';
 
               return (
                 <div key={msg.id} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
                   <div className="flex items-baseline gap-2 mb-1">
-                    <span className={`text-xs font-bold ${msg.isAi ? (isChuckBot ? 'text-amber-400' : 'text-indigo-400') : 'text-slate-400'}`}>
+                    <span className={`text-xs font-bold ${msg.isAi ? 'text-indigo-400' : 'text-slate-400'}`}>
                         {msg.userName}
                     </span>
                     <span className="text-[10px] text-slate-600">
@@ -199,8 +165,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                   <div className={`
                     px-3 py-2 rounded-lg text-sm max-w-[90%] break-words
                     ${isMe ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-slate-700 text-slate-200 rounded-tl-none'}
-                    ${msg.isAi && !isChuckBot ? 'border border-indigo-500/50 bg-slate-900 shadow-lg' : ''}
-                    ${isChuckBot ? 'bg-gradient-to-r from-amber-900/60 to-orange-900/60 border border-orange-500/30 text-amber-100 shadow-[0_0_15px_rgba(245,158,11,0.1)]' : ''}
+                    ${msg.isAi ? 'border border-indigo-500/50 bg-slate-900 shadow-lg' : ''}
                   `}>
                     {msg.text}
                   </div>
@@ -212,17 +177,27 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
           <form onSubmit={handleSend} className="p-3 bg-slate-800 border-t border-slate-700 flex gap-2">
             <button
                 type="button"
-                onClick={handleManualChuck}
-                disabled={isGettingJoke}
-                className="w-8 h-8 rounded-full bg-amber-900/30 text-amber-500 border border-amber-800 flex items-center justify-center hover:bg-amber-800/50 transition-colors disabled:opacity-50"
+                onClick={onGetChuckJoke}
+                disabled={isChuckLoading}
+                className={`
+                    w-9 h-9 rounded-full flex items-center justify-center transition-all border
+                    ${isChuckLoading 
+                        ? 'bg-slate-800 border-slate-700 text-slate-600 cursor-wait' 
+                        : 'bg-slate-700 border-slate-600 text-white hover:bg-slate-600 hover:scale-105 hover:border-slate-500'
+                    }
+                `}
                 title="Summon Chuck Norris"
             >
-                {isGettingJoke ? (
-                    <span className="animate-spin text-xs">↻</span>
+                {isChuckLoading ? (
+                    <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
                 ) : (
-                    <span className="text-lg">👊</span>
+                    <span className="text-lg">🤠</span>
                 )}
             </button>
+
             <input
               className="flex-1 bg-slate-900 border border-slate-600 rounded-full px-4 py-2 text-sm text-white focus:ring-1 focus:ring-indigo-500 outline-none"
               placeholder="Type a message..."

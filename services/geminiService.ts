@@ -107,25 +107,19 @@ export const getAiChatResponse = async (
   }
 };
 
-export const getChuckNorrisJoke = async (): Promise<string> => {
+export const getChuckNorrisJoke = async (): Promise<string | null> => {
   const client = getAi();
-  
-  // Fallback if no API key, so the feature doesn't die completely
-  if (!client) {
-    return "Chuck Norris doesn't need an API Key. The code runs out of fear.";
-  }
+  if (!client) return null;
 
   try {
     const response = await client.models.generateContent({
       model: 'gemini-2.5-flash',
-      contents: "Generate a short, hilarious Chuck Norris fact that is related to software engineering, coding, git, or agile methodology. It should be a 'Chuck Norris Fact' style joke. Keep it punchy and under 30 words.",
-      config: {
-        temperature: 1.1,
-      }
+      contents: "Tell me a short, funny Chuck Norris joke suitable for a software engineering team.",
     });
-    return response.text?.trim() || "Chuck Norris doesn't read code. He stares at the binary until it confesses.";
+
+    return response.text || "Chuck Norris doesn't test code. He stares at it until it confesses.";
   } catch (error) {
-    console.error("Chuck joke failed:", error);
-    return "Chuck Norris pushes directly to main. And main likes it.";
+    console.error("Gemini joke failed:", error);
+    return null;
   }
 };
