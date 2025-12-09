@@ -7,6 +7,7 @@ interface CardProps {
   faceDown?: boolean;
   revealed?: boolean;
   size?: 'sm' | 'md' | 'lg';
+  title?: string;
 }
 
 const Card: React.FC<CardProps> = ({ 
@@ -15,7 +16,8 @@ const Card: React.FC<CardProps> = ({
   onClick, 
   faceDown = false, 
   revealed = false,
-  size = 'md' 
+  size = 'md',
+  title
 }) => {
   
   const sizeClasses = {
@@ -53,7 +55,7 @@ const Card: React.FC<CardProps> = ({
 
   if (faceDown) {
       return (
-          <div className={`relative ${sizeClasses[size]} perspective-1000`} onClick={onClick}>
+          <div className={`relative ${sizeClasses[size]} perspective-1000`} onClick={onClick} title={title}>
               <div className={`relative w-full h-full transform-style-3d ${revealed ? 'animate-flip' : 'transition-transform duration-500'}`}>
                   {/* Front (Back of card pattern) */}
                   <div className="absolute inset-0 w-full h-full backface-hidden">
@@ -71,6 +73,7 @@ const Card: React.FC<CardProps> = ({
   return (
     <div 
       onClick={onClick}
+      title={title}
       className={`
         relative ${sizeClasses[size]} cursor-pointer select-none transition-transform
       `}

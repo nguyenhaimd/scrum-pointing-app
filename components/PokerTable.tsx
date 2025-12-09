@@ -293,6 +293,7 @@ const PokerTable: React.FC<PokerTableProps> = ({
                                                                 : 'w-10 h-14 sm:w-12 sm:h-16 text-sm sm:text-base bg-slate-700 text-slate-300 border border-slate-600 opacity-80'
                                                             }
                                                         `}
+                                                        title={`${count} vote(s) for ${val}`}
                                                     >
                                                         {val}
                                                     </div>
@@ -409,6 +410,7 @@ const PokerTable: React.FC<PokerTableProps> = ({
                                                 faceDown={true}
                                                 revealed={areVotesRevealed}
                                                 size="md"
+                                                title={user.name}
                                             />
                                             {/* VOTED CHECKMARK BADGE */}
                                             {!areVotesRevealed && !isOffline && (
@@ -419,7 +421,7 @@ const PokerTable: React.FC<PokerTableProps> = ({
                                         </div>
                                     ) : (
                                         // Empty Slot for Developers
-                                        <div className="w-14 h-20 md:w-16 md:h-24 rounded-xl border-2 border-dashed border-slate-700 bg-slate-800/30 flex items-center justify-center">
+                                        <div className="w-14 h-20 md:w-16 md:h-24 rounded-xl border-2 border-dashed border-slate-700 bg-slate-800/30 flex items-center justify-center" title={`${user.name} is thinking`}>
                                             {isOffline ? (
                                                 <span className="text-2xl opacity-50">💤</span>
                                             ) : (
@@ -429,7 +431,7 @@ const PokerTable: React.FC<PokerTableProps> = ({
                                     )
                                ) : (
                                    // Non-voter visual (Just an icon/placeholder)
-                                   <div className="w-14 h-20 md:w-16 md:h-24 flex items-center justify-center opacity-40 text-4xl sm:text-5xl" title={user.role}>
+                                   <div className="w-14 h-20 md:w-16 md:h-24 flex items-center justify-center opacity-40 text-4xl sm:text-5xl" title={`${user.name} (${user.role})`}>
                                        {user.role === UserRole.SCRUM_MASTER ? '👨‍🍳' : 
                                         user.role === UserRole.PRODUCT_OWNER ? '👑' : '👁️'}
                                    </div>

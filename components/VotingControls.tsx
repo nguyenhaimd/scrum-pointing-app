@@ -31,6 +31,7 @@ const VotingControls: React.FC<VotingControlsProps> = ({ currentStory, currentUs
             isSelected={selectedVote === value}
             onClick={() => onVote(value)}
             size="md"
+            title={`Vote ${value}`}
           />
         ))}
       </div>
