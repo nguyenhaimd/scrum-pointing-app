@@ -186,7 +186,7 @@ const PokerTable: React.FC<PokerTableProps> = ({
              <button
                onClick={() => setShowArcade(true)}
                className="p-2 bg-slate-800/50 hover:bg-slate-700 border border-slate-700 rounded-full text-slate-300 hover:text-indigo-400 transition-colors"
-               title="Open Arcade"
+               title="Open Arcade Mini-games"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
              </button>
@@ -206,6 +206,7 @@ const PokerTable: React.FC<PokerTableProps> = ({
                        }
                    }}
                    className="w-8 h-8 flex items-center justify-center text-lg hover:bg-slate-700 rounded-full transition-transform hover:scale-110 active:scale-90"
+                   title={`Send ${emoji} reaction`}
                  >
                    {emoji}
                  </button>
@@ -243,7 +244,7 @@ const PokerTable: React.FC<PokerTableProps> = ({
                              <h2 className="text-2xl font-bold text-amber-200 mb-2">Coffee Break!</h2>
                              <p className="text-amber-100/80 mb-4">The team has decided to take a break.</p>
                              {isScrumMaster && (
-                                 <Button onClick={onReset} className="bg-amber-600 hover:bg-amber-500 text-white border-amber-400">
+                                 <Button onClick={onReset} className="bg-amber-600 hover:bg-amber-500 text-white border-amber-400" title="End coffee break">
                                      Back to Work
                                  </Button>
                              )}
@@ -330,6 +331,7 @@ const PokerTable: React.FC<PokerTableProps> = ({
                                                      ? 'bg-indigo-600 text-white' 
                                                      : 'text-slate-400 hover:text-white hover:bg-slate-800'
                                                  }`}
+                                                 title={`Set final score to ${p}`}
                                                >
                                                    {p}
                                                </button>
@@ -337,8 +339,8 @@ const PokerTable: React.FC<PokerTableProps> = ({
                                        </div>
                                    </div>
                                    <div className="flex gap-2 w-full sm:w-auto">
-                                       <Button size="sm" variant="secondary" onClick={onReset} className="flex-1 sm:flex-none">Re-Vote</Button>
-                                       <Button size="sm" onClick={handleFinish} className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-500 border-emerald-500">Complete</Button>
+                                       <Button size="sm" variant="secondary" onClick={onReset} className="flex-1 sm:flex-none" title="Discard votes and start over">Re-Vote</Button>
+                                       <Button size="sm" onClick={handleFinish} className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-500 border-emerald-500" title="Finalize story with selected score">Complete</Button>
                                    </div>
                                </div>
                            )}
@@ -365,7 +367,7 @@ const PokerTable: React.FC<PokerTableProps> = ({
 
                        {isScrumMaster && currentStory && (
                            <div className="mt-4">
-                               <Button onClick={onReveal} disabled={!currentStory.votes || Object.keys(currentStory.votes).length === 0}>
+                               <Button onClick={onReveal} disabled={!currentStory.votes || Object.keys(currentStory.votes).length === 0} title="Reveal votes to everyone">
                                    Reveal Cards
                                </Button>
                            </div>

@@ -117,6 +117,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
               ? 'text-indigo-400 border-b-2 border-indigo-500 bg-slate-700/30' 
               : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'
           }`}
+          title="Open Team Chat"
         >
           Team Chat
         </button>
@@ -127,6 +128,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
               ? 'text-indigo-400 border-b-2 border-indigo-500 bg-slate-700/30' 
               : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'
           }`}
+          title="View Online Users"
         >
           People ({onlineCount})
         </button>
@@ -186,7 +188,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                         : 'bg-slate-700 border-slate-600 text-white hover:bg-slate-600 hover:scale-105 hover:border-slate-500'
                     }
                 `}
-                title="Summon Chuck Norris"
+                title="Generate a Chuck Norris joke"
             >
                 {isChuckLoading ? (
                     <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -208,6 +210,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
               type="submit"
               disabled={!input}
               className="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center hover:bg-indigo-500 disabled:opacity-50 transition-colors"
+              title="Send message"
             >
               <svg className="w-4 h-4 transform rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
             </button>

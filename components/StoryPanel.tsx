@@ -167,6 +167,7 @@ const StoryPanel: React.FC<StoryPanelProps> = ({
                    <button 
                      onClick={(e) => { e.stopPropagation(); onSelectStory(story.id); }}
                      className="text-xs text-indigo-400 hover:text-indigo-300 font-medium flex items-center gap-1 px-2 py-1 hover:bg-indigo-900/30 rounded transition-colors"
+                     title="Make this the active story for voting"
                    >
                      Start Voting
                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
@@ -207,6 +208,7 @@ const StoryPanel: React.FC<StoryPanelProps> = ({
                 className="w-full"
                 onClick={handleAdd}
                 disabled={!newTitle}
+                title="Create new story"
             >
                 Add Story
             </Button>
@@ -218,6 +220,7 @@ const StoryPanel: React.FC<StoryPanelProps> = ({
                 variant="danger" 
                 className="w-full border-red-900 bg-red-900/20 hover:bg-red-900/50 text-red-200"
                 onClick={handleEndSessionClick}
+                title="Clear all stories and disconnect everyone"
             >
                 End Session & Logout Users
             </Button>

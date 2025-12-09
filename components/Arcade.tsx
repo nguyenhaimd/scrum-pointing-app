@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import TicTacToe from './TicTacToe';
 import RockPaperScissors from './RockPaperScissors';
@@ -30,7 +31,7 @@ const Arcade: React.FC<ArcadeProps> = ({ onClose }) => {
                 <h3 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-cyan-400">
                     Arcade
                 </h3>
-                <button onClick={onClose} className="text-slate-400 hover:text-white">
+                <button onClick={onClose} className="text-slate-400 hover:text-white" title="Close Arcade">
                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </button>
              </div>
@@ -39,6 +40,7 @@ const Arcade: React.FC<ArcadeProps> = ({ onClose }) => {
                 <button 
                     onClick={() => setActiveGame('tictactoe')}
                     className="flex flex-col items-center justify-center p-6 bg-slate-800 border border-slate-700 hover:border-indigo-500 rounded-xl hover:bg-slate-700 transition-all group"
+                    title="Play Tic-Tac-Toe"
                 >
                     <div className="text-4xl mb-3 group-hover:scale-110 transition-transform">❌⭕</div>
                     <span className="font-bold text-slate-200">Tic-Tac-Toe</span>
@@ -47,6 +49,7 @@ const Arcade: React.FC<ArcadeProps> = ({ onClose }) => {
                 <button 
                     onClick={() => setActiveGame('rps')}
                     className="flex flex-col items-center justify-center p-6 bg-slate-800 border border-slate-700 hover:border-indigo-500 rounded-xl hover:bg-slate-700 transition-all group"
+                    title="Play Rock Paper Scissors"
                 >
                     <div className="text-4xl mb-3 group-hover:scale-110 transition-transform">✂️</div>
                     <span className="font-bold text-slate-200">R.P.S.</span>
@@ -55,6 +58,7 @@ const Arcade: React.FC<ArcadeProps> = ({ onClose }) => {
                 <button 
                     onClick={() => setActiveGame('snake')}
                     className="flex flex-col items-center justify-center p-6 bg-slate-800 border border-slate-700 hover:border-indigo-500 rounded-xl hover:bg-slate-700 transition-all group"
+                    title="Play Snake"
                 >
                     <div className="text-4xl mb-3 group-hover:scale-110 transition-transform">🐍</div>
                     <span className="font-bold text-slate-200">Snake</span>
@@ -63,6 +67,7 @@ const Arcade: React.FC<ArcadeProps> = ({ onClose }) => {
                 <button 
                     onClick={() => setActiveGame('memory')}
                     className="flex flex-col items-center justify-center p-6 bg-slate-800 border border-slate-700 hover:border-indigo-500 rounded-xl hover:bg-slate-700 transition-all group"
+                    title="Play Memory Match"
                 >
                     <div className="text-4xl mb-3 group-hover:scale-110 transition-transform">🧠</div>
                     <span className="font-bold text-slate-200">Memory</span>

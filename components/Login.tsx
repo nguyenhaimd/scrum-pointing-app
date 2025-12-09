@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { ROLES, AVATARS } from '../constants';
 import { UserRole, User } from '../types';
@@ -94,6 +95,7 @@ const Login: React.FC<LoginProps> = ({ onJoin }) => {
                     w-8 h-8 flex items-center justify-center rounded text-xl transition-transform hover:scale-110
                     ${selectedAvatar === avatar ? 'bg-indigo-600 ring-2 ring-indigo-400 scale-110' : 'hover:bg-slate-800'}
                   `}
+                  title={`Select ${avatar} avatar`}
                 >
                   {avatar}
                 </button>
@@ -117,6 +119,7 @@ const Login: React.FC<LoginProps> = ({ onJoin }) => {
                       : 'bg-slate-900 border-slate-700 hover:bg-slate-800'
                     }
                   `}
+                  title={`Join as ${r.label}`}
                 >
                   <div className="flex items-center justify-between">
                     <span className={`font-medium ${role === r.value ? 'text-indigo-300' : 'text-slate-300'}`}>
@@ -132,7 +135,7 @@ const Login: React.FC<LoginProps> = ({ onJoin }) => {
             </div>
           </div>
 
-          <Button type="submit" className="w-full" size="lg">
+          <Button type="submit" className="w-full" size="lg" title="Start Session">
             Join Session
           </Button>
         </form>

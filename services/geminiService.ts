@@ -107,9 +107,23 @@ export const getAiChatResponse = async (
   }
 };
 
-export const getChuckNorrisJoke = async (): Promise<string | null> => {
+export const getChuckNorrisJoke = async (): Promise<string> => {
   const client = getAi();
-  if (!client) return null;
+  
+  const fallbacks = [
+    "Chuck Norris doesn't test code. He stares at it until it confesses.",
+    "Chuck Norris can compile syntax errors.",
+    "Chuck Norris doesn't need a debugger, he just stares down the bug until the code apologizes.",
+    "Chuck Norris writes code that optimizes itself.",
+    "Chuck Norris can access the DB from the UI.",
+    "When Chuck Norris throws exceptions, it's across the room.",
+    "Chuck Norris can binary search unsorted data.",
+    "Chuck Norris acts as the break condition for all recursive functions.",
+    "Chuck Norris's keyboard doesn't have a Ctrl key because nothing controls Chuck Norris."
+  ];
+  const randomFallback = fallbacks[Math.floor(Math.random() * fallbacks.length)];
+
+  if (!client) return randomFallback;
 
   try {
     const response = await client.models.generateContent({
@@ -117,9 +131,9 @@ export const getChuckNorrisJoke = async (): Promise<string | null> => {
       contents: "Tell me a short, funny Chuck Norris joke suitable for a software engineering team.",
     });
 
-    return response.text || "Chuck Norris doesn't test code. He stares at it until it confesses.";
+    return response.text || randomFallback;
   } catch (error) {
     console.error("Gemini joke failed:", error);
-    return null;
+    return randomFallback;
   }
 };

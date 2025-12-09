@@ -1,10 +1,11 @@
-
 import React, { useEffect, useState, useRef, useMemo } from 'react';
 import Login from './Login';
 import PokerTable from './PokerTable';
 import VotingControls from './VotingControls';
 import StoryPanel from './StoryPanel';
 import ChatPanel from './ChatPanel';
+import OnboardingModal from './OnboardingModal';
+import AboutModal from './AboutModal';
 import { useAppStore } from '../services/store';
 import { User, UserRole, ChatMessage } from '../types';
 import { USER_STORAGE_KEY, SOUND_PREF_KEY, STALE_USER_TIMEOUT, DISCONNECT_GRACE_PERIOD } from '../constants';
@@ -28,6 +29,8 @@ const App: React.FC = () => {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [now, setNow] = useState(Date.now());
   const [isChuckLoading, setIsChuckLoading] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showAbout, setShowAbout] = useState(false);
 
   // Try to restore session on mount from localStorage (persists across close/reopen)
   useEffect(() => {
@@ -52,6 +55,21 @@ const App: React.FC = () => {
     const interval = setInterval(() => setNow(Date.now()), 5000);
     return () => clearInterval(interval);
   }, []);
+
+  // Check for first-time onboarding
+  useEffect(() => {
+      if (currentUser) {
+          const hasSeenOnboarding = localStorage.getItem('scrum-poker-onboarding-v1');
+          if (!hasSeenOnboarding) {
+              setShowOnboarding(true);
+          }
+      }
+  }, [currentUser]);
+
+  const handleDismissOnboarding = () => {
+      localStorage.setItem('scrum-poker-onboarding-v1', 'true');
+      setShowOnboarding(false);
+  };
 
   const toggleMute = () => {
       const newState = !isSoundMuted;
@@ -276,6 +294,14 @@ const App: React.FC = () => {
             
             <div className="flex items-center gap-3 pl-4 border-l border-slate-700">
                 <button 
+                    onClick={() => setShowAbout(true)}
+                    className="p-1.5 rounded-lg text-slate-500 hover:text-white hover:bg-slate-700 transition-colors"
+                    title="About & Features"
+                >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                </button>
+
+                <button 
                     onClick={toggleMute}
                     className={`p-1.5 rounded-lg transition-colors ${isSoundMuted ? 'text-slate-500 hover:text-slate-300' : 'text-indigo-400 hover:text-indigo-300 bg-indigo-900/20'}`}
                     title={isSoundMuted ? "Unmute Sounds" : "Mute Sounds"}
@@ -294,7 +320,7 @@ const App: React.FC = () => {
                 <div className="w-8 h-8 flex items-center justify-center bg-slate-700 rounded-full text-lg">
                     {currentUser.avatar || '👤'}
                 </div>
-                <button onClick={handleLogout} className="text-slate-400 hover:text-white ml-2" title="Logout">
+                <button onClick={handleLogout} className="text-slate-400 hover:text-white ml-2" title="Logout and clear session">
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
                 </button>
             </div>
@@ -412,6 +438,10 @@ const App: React.FC = () => {
         </div>
 
       </div>
+
+      {/* Modals */}
+      {showOnboarding && <OnboardingModal onClose={handleDismissOnboarding} />}
+      {showAbout && <AboutModal onClose={() => setShowAbout(false)} />}
     </div>
   );
 };
