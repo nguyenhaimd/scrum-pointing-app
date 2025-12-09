@@ -157,7 +157,7 @@ const App: React.FC = () => {
             if (sessionStatusRef.current === 'active') {
                 try {
                     const joke = await getChuckNorrisJoke();
-                    if (mounted) {
+                    if (mounted && joke) {
                          const botMsg: ChatMessage = {
                             id: crypto.randomUUID(),
                             userId: 'chuck-norris-bot',
@@ -174,9 +174,9 @@ const App: React.FC = () => {
                 }
             }
 
-            // Schedule next run (between 1 and 3 minutes for more fun)
-            const minMins = 1;
-            const maxMins = 3;
+            // Schedule next run (between 2 and 5 minutes)
+            const minMins = 2;
+            const maxMins = 5;
             const nextDelay = (Math.floor(Math.random() * (maxMins - minMins + 1)) + minMins) * 60 * 1000;
             
             if (mounted) runBotCycle(nextDelay);
@@ -184,8 +184,8 @@ const App: React.FC = () => {
         }, delay);
     };
 
-    // Start with a short delay (15s) so the user sees it works immediately
-    runBotCycle(15000);
+    // Start with a short delay (30s) so the user sees it works reasonably soon
+    runBotCycle(30000);
 
     return () => {
         mounted = false;
