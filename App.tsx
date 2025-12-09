@@ -379,6 +379,8 @@ const App: React.FC = () => {
                 currentStory={currentStory}
                 onSendMessage={(msg) => dispatch({ type: 'SEND_MESSAGE', payload: msg })}
                 onRemoveUser={(userId) => dispatch({ type: 'REMOVE_USER', payload: userId })}
+                chuckBotEnabled={state.chuckBotEnabled}
+                onToggleChuckBot={() => dispatch({ type: 'TOGGLE_CHUCK_BOT' })}
             />
         </div>
 
