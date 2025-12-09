@@ -5,9 +5,11 @@ import Button from './Button';
 
 interface LoginProps {
   onJoin: (user: User) => void;
+  onShowOnboarding: () => void;
+  onShowAbout: () => void;
 }
 
-const Login: React.FC<LoginProps> = ({ onJoin }) => {
+const Login: React.FC<LoginProps> = ({ onJoin, onShowOnboarding, onShowAbout }) => {
   const [name, setName] = useState('');
   const [room, setRoom] = useState('planning');
   const [role, setRole] = useState<UserRole>(UserRole.DEVELOPER);
@@ -44,7 +46,28 @@ const Login: React.FC<LoginProps> = ({ onJoin }) => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-900 p-4 overflow-y-auto">
-      <div className="w-full max-w-md bg-slate-800 rounded-2xl shadow-xl border border-slate-700 p-6 md:p-8 my-8">
+      <div className="w-full max-w-md bg-slate-800 rounded-2xl shadow-xl border border-slate-700 p-6 md:p-8 my-8 relative">
+        
+        {/* Help & Info Buttons */}
+        <div className="absolute top-4 right-4 flex gap-2">
+            <button 
+                type="button"
+                onClick={onShowAbout}
+                className="text-slate-500 hover:text-indigo-400 transition-colors p-1"
+                title="About & Features"
+            >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </button>
+            <button 
+                type="button"
+                onClick={onShowOnboarding}
+                className="text-slate-500 hover:text-indigo-400 transition-colors p-1"
+                title="User Guide"
+            >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+            </button>
+        </div>
+
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-cyan-400">
             HighWind's Scrum Poker
