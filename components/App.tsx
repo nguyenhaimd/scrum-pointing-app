@@ -28,9 +28,9 @@ const App: React.FC = () => {
   const [isSoundMuted, setIsSoundMuted] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [now, setNow] = useState(Date.now());
-  const [isChuckLoading, setIsChuckLoading] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
+  const [isChuckLoading, setIsChuckLoading] = useState(false);
 
   // Try to restore session on mount from localStorage (persists across close/reopen)
   useEffect(() => {
@@ -56,9 +56,18 @@ const App: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
+  // Check for first-time onboarding
+  useEffect(() => {
+      if (currentUser) {
+          const hasSeenOnboarding = localStorage.getItem('scrum-poker-onboarding-v1');
+          if (!hasSeenOnboarding) {
+              setShowOnboarding(true);
+          }
+      }
+  }, [currentUser]);
+
   const handleDismissOnboarding = () => {
-      // We no longer track 'seen' state since it's manual now, 
-      // but we can still close the modal.
+      localStorage.setItem('scrum-poker-onboarding-v1', 'true');
       setShowOnboarding(false);
   };
 
@@ -286,7 +295,7 @@ const App: React.FC = () => {
                     className="p-1.5 rounded-lg text-slate-500 hover:text-white hover:bg-slate-700 transition-colors"
                     title="User Guide"
                 >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
                 </button>
 
                 <button 
