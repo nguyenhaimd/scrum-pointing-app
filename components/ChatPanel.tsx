@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 // @ts-ignore
 import confetti from 'canvas-confetti';
@@ -185,10 +184,12 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
               }
 
               const isMe = msg.userId === currentUser.id;
+              const isChuckBot = msg.userId === 'chuck-norris-bot';
+
               return (
                 <div key={msg.id} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
                   <div className="flex items-baseline gap-2 mb-1">
-                    <span className={`text-xs font-bold ${msg.isAi ? 'text-indigo-400' : 'text-slate-400'}`}>
+                    <span className={`text-xs font-bold ${msg.isAi ? (isChuckBot ? 'text-amber-400' : 'text-indigo-400') : 'text-slate-400'}`}>
                         {msg.userName}
                     </span>
                     <span className="text-[10px] text-slate-600">
@@ -198,7 +199,8 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                   <div className={`
                     px-3 py-2 rounded-lg text-sm max-w-[90%] break-words
                     ${isMe ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-slate-700 text-slate-200 rounded-tl-none'}
-                    ${msg.isAi ? 'border border-indigo-500/50 bg-slate-900 shadow-lg' : ''}
+                    ${msg.isAi && !isChuckBot ? 'border border-indigo-500/50 bg-slate-900 shadow-lg' : ''}
+                    ${isChuckBot ? 'bg-gradient-to-r from-amber-900/60 to-orange-900/60 border border-orange-500/30 text-amber-100 shadow-[0_0_15px_rgba(245,158,11,0.1)]' : ''}
                   `}>
                     {msg.text}
                   </div>
