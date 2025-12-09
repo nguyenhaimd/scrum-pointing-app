@@ -64,6 +64,7 @@ export interface AppState {
   timer: TimerState;
   lastReaction: Reaction | null;
   sessionStatus: 'active' | 'ended';
+  chuckBotEnabled: boolean;
 }
 
 export type Action =
@@ -86,4 +87,5 @@ export type Action =
   | { type: 'PAUSE_TIMER' }
   | { type: 'RESET_TIMER' }
   | { type: 'SEND_REACTION'; payload: { emoji: string; userId: string } }
-  | { type: 'END_SESSION' };
+  | { type: 'END_SESSION' }
+  | { type: 'TOGGLE_CHUCK_BOT' };

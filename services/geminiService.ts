@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
 import { Story } from "../types";
 
@@ -69,7 +70,7 @@ export const getChuckNorrisJoke = async (): Promise<string> => {
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
-      contents: "Tell me a unique, short, and very funny Chuck Norris fact or meme quote. Keep it under 25 words.",
+      contents: "Tell me a unique, short, and very funny Chuck Norris fact or meme quote. Keep it under 25 words. Mix it up between coding memes and classic feats of strength.",
     });
     return response.text?.trim() || "Chuck Norris doesn't read code. He stares at the binary until it confesses.";
   } catch (error) {

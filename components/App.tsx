@@ -143,6 +143,9 @@ const App: React.FC = () => {
     // Only run for Scrum Master
     if (!currentUser || currentUser.role !== UserRole.SCRUM_MASTER) return;
 
+    // Check if enabled in state
+    if (!state.chuckBotEnabled) return;
+
     let timeoutId: NodeJS.Timeout;
     let mounted = true;
 
@@ -171,9 +174,9 @@ const App: React.FC = () => {
                 }
             }
 
-            // Schedule next run (between 2 and 5 minutes)
-            const minMins = 2;
-            const maxMins = 5;
+            // Schedule next run (between 1 and 3 minutes for more fun)
+            const minMins = 1;
+            const maxMins = 3;
             const nextDelay = (Math.floor(Math.random() * (maxMins - minMins + 1)) + minMins) * 60 * 1000;
             
             if (mounted) runBotCycle(nextDelay);
@@ -188,7 +191,7 @@ const App: React.FC = () => {
         mounted = false;
         clearTimeout(timeoutId);
     };
-  }, [currentUser?.role]); // Only re-run if role changes, NOT on every state update
+  }, [currentUser?.role, state.chuckBotEnabled]); // Re-run when toggle changes
 
   const addToast = (message: string, type: Toast['type'] = 'info', persistent = false) => {
       const id = crypto.randomUUID();
@@ -439,6 +442,8 @@ const App: React.FC = () => {
                 currentStory={currentStory}
                 onSendMessage={(msg) => dispatch({ type: 'SEND_MESSAGE', payload: msg })}
                 onRemoveUser={(userId) => dispatch({ type: 'REMOVE_USER', payload: userId })}
+                chuckBotEnabled={state.chuckBotEnabled}
+                onToggleChuckBot={() => dispatch({ type: 'TOGGLE_CHUCK_BOT' })}
             />
         </div>
 
