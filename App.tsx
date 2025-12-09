@@ -1,14 +1,16 @@
-
 import React, { useEffect, useState, useRef, useMemo } from 'react';
 import Login from './components/Login';
 import PokerTable from './components/PokerTable';
 import VotingControls from './components/VotingControls';
 import StoryPanel from './components/StoryPanel';
 import ChatPanel from './components/ChatPanel';
+import OnboardingModal from './components/OnboardingModal';
+import AboutModal from './components/AboutModal';
 import { useAppStore } from './services/store';
-import { User } from './types';
+import { User, UserRole, ChatMessage } from './types';
 import { USER_STORAGE_KEY, SOUND_PREF_KEY, STALE_USER_TIMEOUT, DISCONNECT_GRACE_PERIOD } from './constants';
 import { setMuted, playSound } from './services/soundService';
+import { getChuckNorrisJoke } from './services/geminiService';
 
 type MobileView = 'stories' | 'table' | 'chat';
 
@@ -26,6 +28,9 @@ const App: React.FC = () => {
   const [isSoundMuted, setIsSoundMuted] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [now, setNow] = useState(Date.now());
+  const [isChuckLoading, setIsChuckLoading] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showAbout, setShowAbout] = useState(false);
 
   // Try to restore session on mount from localStorage (persists across close/reopen)
   useEffect(() => {
@@ -50,6 +55,21 @@ const App: React.FC = () => {
     const interval = setInterval(() => setNow(Date.now()), 5000);
     return () => clearInterval(interval);
   }, []);
+
+  // Check for first-time onboarding
+  useEffect(() => {
+      if (currentUser) {
+          const hasSeenOnboarding = localStorage.getItem('scrum-poker-onboarding-v1');
+          if (!hasSeenOnboarding) {
+              setShowOnboarding(true);
+          }
+      }
+  }, [currentUser]);
+
+  const handleDismissOnboarding = () => {
+      localStorage.setItem('scrum-poker-onboarding-v1', 'true');
+      setShowOnboarding(false);
+  };
 
   const toggleMute = () => {
       const newState = !isSoundMuted;
@@ -124,9 +144,6 @@ const App: React.FC = () => {
            }
       });
       
-      // 2. Detect Leaves - Notification REMOVED.
-      // We rely on the visual state in the PokerTable (greyed out) and the Header (Team Health).
-
       prevVisibleUsersRef.current = curr;
   }, [visibleUsers, currentUser]);
 
@@ -156,6 +173,31 @@ const App: React.FC = () => {
       setCurrentUser(null);
       window.location.reload();
   };
+
+  const handleGetChuckJoke = async () => {
+    if (isChuckLoading) return;
+    setIsChuckLoading(true);
+    try {
+        const joke = await getChuckNorrisJoke();
+        if (joke) {
+            const botMsg: ChatMessage = {
+                id: crypto.randomUUID(),
+                userId: 'chuck-norris-bot',
+                userName: 'Chuck Norris Bot 🤠',
+                text: joke,
+                timestamp: Date.now(),
+                isAi: true,
+                isSystem: false
+            };
+            dispatch({ type: 'SEND_MESSAGE', payload: botMsg });
+        }
+    } catch (e) {
+        console.error(e);
+        addToast("Failed to summon Chuck", 'error');
+    } finally {
+        setIsChuckLoading(false);
+    }
+  };
   
   // Force logout if session ends
   useEffect(() => {
@@ -170,7 +212,7 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-slate-900 text-white overflow-hidden relative">
+    <div className="flex flex-col h-screen h-[100dvh] bg-slate-900 text-white overflow-hidden relative">
       
       {/* Toast Container */}
       <div className="fixed top-20 right-4 z-[80] flex flex-col gap-2 pointer-events-auto">
@@ -249,6 +291,14 @@ const App: React.FC = () => {
             
             <div className="flex items-center gap-3 pl-4 border-l border-slate-700">
                 <button 
+                    onClick={() => setShowAbout(true)}
+                    className="p-1.5 rounded-lg text-slate-500 hover:text-white hover:bg-slate-700 transition-colors"
+                    title="About & Features"
+                >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                </button>
+
+                <button 
                     onClick={toggleMute}
                     className={`p-1.5 rounded-lg transition-colors ${isSoundMuted ? 'text-slate-500 hover:text-slate-300' : 'text-indigo-400 hover:text-indigo-300 bg-indigo-900/20'}`}
                     title={isSoundMuted ? "Unmute Sounds" : "Mute Sounds"}
@@ -267,7 +317,7 @@ const App: React.FC = () => {
                 <div className="w-8 h-8 flex items-center justify-center bg-slate-700 rounded-full text-lg">
                     {currentUser.avatar || '👤'}
                 </div>
-                <button onClick={handleLogout} className="text-slate-400 hover:text-white ml-2" title="Logout">
+                <button onClick={handleLogout} className="text-slate-400 hover:text-white ml-2" title="Logout and clear session">
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
                 </button>
             </div>
@@ -379,10 +429,16 @@ const App: React.FC = () => {
                 currentStory={currentStory}
                 onSendMessage={(msg) => dispatch({ type: 'SEND_MESSAGE', payload: msg })}
                 onRemoveUser={(userId) => dispatch({ type: 'REMOVE_USER', payload: userId })}
+                onGetChuckJoke={handleGetChuckJoke}
+                isChuckLoading={isChuckLoading}
             />
         </div>
 
       </div>
+
+      {/* Modals */}
+      {showOnboarding && <OnboardingModal onClose={handleDismissOnboarding} />}
+      {showAbout && <AboutModal onClose={() => setShowAbout(false)} />}
     </div>
   );
 };

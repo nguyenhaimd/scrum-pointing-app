@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { ROLES, AVATARS } from '../constants';
 import { UserRole, User } from '../types';
@@ -12,7 +11,8 @@ const Login: React.FC<LoginProps> = ({ onJoin }) => {
   const [name, setName] = useState('');
   const [room, setRoom] = useState('planning');
   const [role, setRole] = useState<UserRole>(UserRole.DEVELOPER);
-  const [selectedAvatar, setSelectedAvatar] = useState(AVATARS[0]);
+  // Randomize initial avatar selection
+  const [selectedAvatar, setSelectedAvatar] = useState(() => AVATARS[Math.floor(Math.random() * AVATARS.length)]);
 
   const getDeviceType = (): 'mobile' | 'tablet' | 'desktop' => {
     const ua = navigator.userAgent;
