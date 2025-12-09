@@ -401,12 +401,13 @@ const PokerTable: React.FC<PokerTableProps> = ({
                    const isOffline = !user.isOnline;
 
                    return (
-                       <div key={user.id} className={`relative group flex flex-col items-center w-full sm:w-auto ${isOffline ? 'opacity-50 grayscale transition-all duration-1000' : ''}`}>
+                       <div key={user.id} className={`relative group flex flex-col items-center w-full sm:w-auto ${isOffline ? 'opacity-75 transition-all duration-1000' : ''}`}>
                            
                            {/* The Card / Placeholder */}
                            <div className={`
                                relative transition-all duration-300 min-h-[80px] sm:min-h-[96px] flex items-center justify-center
                                ${hasVoted && !areVotesRevealed ? '-translate-y-2' : ''}
+                               ${isOffline ? 'grayscale opacity-80' : ''}
                            `}>
                                {showCardSlot ? (
                                     hasVoted ? (
@@ -453,12 +454,12 @@ const PokerTable: React.FC<PokerTableProps> = ({
                            <div className="mt-2 sm:mt-3 flex flex-col items-center max-w-full w-full px-1">
                                <div className={`
                                    flex items-center justify-center gap-1.5 bg-slate-800/80 backdrop-blur px-2 py-1 rounded-full border shadow-sm w-full transition-colors duration-300 relative
-                                   ${isOffline ? 'border-red-900/30 bg-red-900/10' : hasVoted ? 'border-emerald-500/50 bg-emerald-900/20' : 'border-slate-700'}
+                                   ${isOffline ? 'border-red-500/60 bg-red-500/10 shadow-[0_0_10px_rgba(239,68,68,0.2)] animate-pulse' : hasVoted ? 'border-emerald-500/50 bg-emerald-900/20' : 'border-slate-700'}
                                `}>
-                                   {/* Disconnected Overlay Icon */}
+                                   {/* Disconnected Overlay Icon - Now next to name instead of overlaying everything */}
                                    {isOffline && (
-                                       <div className="absolute inset-0 flex items-center justify-center bg-slate-900/50 rounded-full z-10" title="Disconnected">
-                                            <svg className="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path></svg>
+                                       <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center z-10 border border-slate-900" title="Disconnected">
+                                            <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                                        </div>
                                    )}
                                    <span className="text-xs sm:text-sm shrink-0">{user.avatar}</span>
