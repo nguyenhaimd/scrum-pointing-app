@@ -11,6 +11,7 @@ import { User, UserRole, ChatMessage } from './types';
 import { USER_STORAGE_KEY, SOUND_PREF_KEY, STALE_USER_TIMEOUT, DISCONNECT_GRACE_PERIOD } from './constants';
 import { setMuted, playSound } from './services/soundService';
 import { getChuckNorrisJoke } from './services/geminiService';
+import { db } from './firebaseConfig';
 
 type MobileView = 'stories' | 'table' | 'chat';
 
@@ -153,7 +154,21 @@ const App: React.FC = () => {
   };
 
   // Actions
-  const handleJoin = (user: User) => {
+  const handleJoin = async (user: User) => {
+    // Fix: Force session to active state before joining.
+    // This handles cases where a session might be in 'ended' state from a previous run,
+    // preventing the user from being immediately logged out upon joining.
+    if (db) {
+        try {
+            const roomId = user.room.replace(/[^a-zA-Z0-9]/g, '_');
+            await db.ref(`sessions/${roomId}`).update({
+                sessionStatus: 'active'
+            });
+        } catch (error) {
+            console.error("Error activating session:", error);
+        }
+    }
+
     localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user));
     setCurrentUser(user);
   };
