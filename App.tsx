@@ -56,16 +56,6 @@ const App: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // Check for first-time onboarding
-  useEffect(() => {
-      if (currentUser) {
-          const hasSeenOnboarding = localStorage.getItem('scrum-poker-onboarding-v1');
-          if (!hasSeenOnboarding) {
-              setShowOnboarding(true);
-          }
-      }
-  }, [currentUser]);
-
   const handleDismissOnboarding = () => {
       localStorage.setItem('scrum-poker-onboarding-v1', 'true');
       setShowOnboarding(false);
