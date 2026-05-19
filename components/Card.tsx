@@ -32,12 +32,14 @@ const Card: React.FC<CardProps> = ({
   
   const cardContent = (
     <div className={`
-      absolute inset-0 w-full h-full rounded-xl border-2 flex items-center justify-center font-bold shadow-md
-      transition-all duration-200
-      ${isSelected ? 'bg-indigo-600 border-indigo-400 text-white -translate-y-4 shadow-indigo-500/50' : 'bg-slate-800 border-slate-600 text-slate-200 hover:bg-slate-700 hover:border-slate-500'}
+      absolute inset-0 w-full h-full rounded-2xl border-2 flex items-center justify-center font-bold shadow-lg
+      transition-all duration-300
+      ${isSelected ? 'bg-gradient-to-br from-indigo-500 to-indigo-700 border-indigo-300 text-white shadow-indigo-500/40' : 'bg-slate-800 border-slate-600 text-slate-200 hover:bg-slate-700 hover:border-slate-500 shadow-black/20'}
       ${faceDown && !revealed ? 'hidden' : 'block'}
     `}>
-      {value}
+      <span className={`transition-transform duration-300 ${isSelected ? 'scale-125' : 'scale-100'}`}>
+        {value}
+      </span>
     </div>
   );
 
